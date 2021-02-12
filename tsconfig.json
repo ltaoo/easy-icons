@@ -1,12 +1,15 @@
 {
   "compilerOptions": {
     "strict": true,
-    "target": "esnext",
     "module": "commonjs",
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "jsx": "preserve",
-    "skipLibCheck": true
-  }
+    "skipLibCheck": true,
+    "target": "es5",
+    "declaration": true
+  },
+  "include": ["src/**/*", "!src/templates"],
+  "exclude": ["src/templates/**/*"]
 }

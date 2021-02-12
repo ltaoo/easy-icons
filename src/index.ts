@@ -1,220 +1,276 @@
-import { readFileSync } from "fs";
-import { resolve } from "path";
+import { readFileSync, writeFileSync } from "fs";
+import { resolve, parse, basename } from "path";
+import SVGO from "svgo";
+import template from "lodash.template";
+import upperfirst from "lodash.upperfirst";
+import vinyl_fs from "vinyl-fs";
+import through2 from "through2";
+import globby from "globby";
 
-import { series, parallel } from "gulp";
-// import { src, dest } from 'gulp';
-// import SVGO from 'svgo';
-import { SVG2DefinitionOptions, t } from "./plugins/svg2Definition";
-// import rename from 'gulp-rename';
-// import { UseTemplatePluginOptions } from '../../plugins/useTemplate';
-import { useTemplate, svg2Definition, svgo } from "./plugins";
-
-import {
-  clean,
-  copy,
-  generateIcons,
-  generateEntry,
-  generateInline,
-} from "./tasks/creators";
-import { generalConfig, remainFillConfig } from "./plugins/svgo/presets";
+import { getIdentifier } from "./utils";
+import { t } from "./plugins/svg2Definition";
+import { generalConfig } from "./plugins/svgo/presets";
 import {
   assignAttrsAtTag,
   adjustViewBox,
-  setDefaultColorAtPathTag,
 } from "./plugins/svg2Definition/transforms";
-// import { twotoneStringify } from './plugins/svg2Definition/stringify';
-import { getIdentifier } from "./utils";
-import { IconDefinition } from "./templates/types";
-import { ExtractRegExp } from "./tasks/creators/generateInline";
+import { ThemeType, ThemeTypeUpperCase } from "./types";
 
-const iconTemplate = readFileSync(
+/**
+ * svg 转 js 纯对象
+ */
+export async function svg2asn(string: string, name: string, theme: string) {
+  const optimizer = new SVGO(generalConfig);
+  const { data } = await optimizer.optimize(string);
+  const asn = t(data, {
+    name: name,
+    theme: theme,
+    extraNodeTransformFactories: [
+      assignAttrsAtTag("svg", { focusable: "false" }),
+      adjustViewBox,
+    ],
+    stringify: JSON.stringify,
+  });
+  return asn;
+}
+const iconTsFileTemplate = readFileSync(
   resolve(__dirname, "./templates/icon.ts.ejs"),
   "utf8"
 );
+/**
+ * asn 渲染成 ts 文件内容
+ */
+export function asn2ts(asn: string) {
+  const { name, theme } = JSON.parse(asn);
+  const mapToInterpolate = function({
+    name,
+    content,
+  }: {
+    name: string;
+    content: string;
+  }) {
+    return {
+      identifier: getIdentifier({
+        name: name,
+        themeSuffix: theme
+          ? (upperfirst(theme) as ThemeTypeUpperCase)
+          : undefined,
+      }),
+      content: content,
+    };
+  };
+  var executor = template(iconTsFileTemplate);
+  return executor(mapToInterpolate({ name: name, content: asn }));
+}
 
-interface Params {
+function getNameAndThemeFromPath(filepath: string) {
+  const { name, dir } = parse(filepath);
+  const theme = basename(dir);
+  return {
+    name: name,
+    theme: theme,
+  };
+}
+const one = through2.obj(function(file, _, cb) {
+  if (file.isNull()) {
+    return cb(null, file);
+  }
+  const filepath = file.path;
+  const { name, theme } = getNameAndThemeFromPath(filepath);
+  const content = file.contents.toString();
+  const nextContent = svg2asn(content, name, theme);
+  file.contents = Buffer.from(nextContent);
+  file.meta = {
+    name: name,
+    theme: theme,
+  };
+  return cb(null, file);
+});
+
+const two = through2.obj(function(file, _, cb) {
+  if (file.isNull()) {
+    return cb(null, file);
+  }
+  var content = file.contents.toString();
+  var nextContent = asn2ts(content);
+  file.contents = Buffer.from(nextContent);
+  return cb(null, file);
+});
+const rename = through2.obj(function(file, _, cb) {
+  if (file.isNull()) {
+    return cb(null, file);
+  }
+  const {
+    path,
+    meta: { name, theme },
+  } = file;
+  file.path = path.replace("/" + theme, "/asn");
+  file.basename = getIdentifier({ name: name, themeSuffix: theme });
+  file.extname = ".ts";
+  return cb(null, file);
+});
+/**
+ * 批量转换文件
+ */
+export default function multipleTransform(src: string, output: string) {
+  // 编译 svg 文件
+  var pattern = src + "/**/*.svg";
+  vinyl_fs
+    .src(pattern)
+    .pipe(one)
+    .pipe(two)
+    .pipe(rename)
+    .pipe(vinyl_fs.dest(output));
+  // 生成入口文件
+  const entryFileTemplate =
+    "export { default as <%= identifier %> } from '<%= path %>';";
+  const files = globby
+    .sync("asn/*.ts", { cwd: output })
+    .map(function(filepath) {
+      const { name } = parse(filepath);
+      const identifier = getIdentifier({ name: name });
+      const path = `./asn/${identifier}`;
+      return template(entryFileTemplate)({
+        identifier: identifier,
+        path: path,
+      });
+    })
+    .join("\n");
+  writeFileSync(output + "/index.ts", files);
+  // 拷贝 d.ts 文件
+  vinyl_fs
+    .src(resolve(__dirname, "templates") + "/*.ts")
+    .pipe(vinyl_fs.dest(output));
+}
+/**
+ * 创建 tsx 文件供引用
+ */
+export function createTsxFile({
+  from,
+  to,
+  iconsPath,
+}: {
   from: string;
   to: string;
-}
-export default (options: Params) => {
-  const { from, to } = options;
-  return series(
-    // 1. clean
-    // clean(["inline-svg", "es", "lib"]),
-
-    parallel(
-      // 2.1 copy helpers.ts, types.ts
-      //   copy({
-      //     from: ["templates/*.ts"],
-      //     toDir: "src",
-      //   }),
-
-      // 2.2 generate abstract node with the theme "filled"
-      // generateIcons({
-      //   theme: 'filled',
-      //   from: ['svg/filled/*.svg'],
-      //   toDir: 'src/asn',
-      //   svgoConfig: generalConfig,
-      //   extraNodeTransformFactories: [
-      //     assignAttrsAtTag('svg', { focusable: 'false' }),
-      //     adjustViewBox
-      //   ],
-      //   stringify: JSON.stringify,
-      //   template: iconTemplate,
-      //   mapToInterpolate: ({ name, content }) => ({
-      //     identifier: getIdentifier({ name, themeSuffix: 'Filled' }),
-      //     content
-      //   }),
-      //   filename: ({ name }) => getIdentifier({ name, themeSuffix: 'Filled' })
-      // }),
-
-      // 2.2 generate abstract node with the theme "outlined"
-      generateIcons({
-        theme: "outlined",
-        from: [from],
-        toDir: `${to}/asn`,
-        // from: ["svg/outlined/*.svg"],
-        // toDir: "src/asn",
-        svgoConfig: generalConfig,
-        extraNodeTransformFactories: [
-          assignAttrsAtTag("svg", { focusable: "false" }),
-          adjustViewBox,
-        ],
-        stringify: JSON.stringify,
-        template: iconTemplate,
-        mapToInterpolate: ({ name, content }) => ({
-          identifier: getIdentifier({ name, themeSuffix: "Outlined" }),
-          content,
-        }),
-        filename: ({ name }) =>
-          getIdentifier({ name, themeSuffix: "Outlined" }),
+  iconsPath: string;
+}) {
+  const pattern = from + "/**/*.ts";
+  vinyl_fs
+    .src(pattern)
+    .pipe(
+      through2.obj(function(file, _, cb) {
+        if (file.isNull()) {
+          return cb(null, file);
+        }
+        var path = file.path;
+        var name = parse(path).name;
+        var render = template(
+          (
+            "\n// GENERATE BY ./scripts/generate.ts\n// DON NOT EDIT IT MANUALLY\n\nimport * as React from 'react'\nimport <%= svgIdentifier %>Svg from '" +
+            iconsPath +
+            "/<%= svgIdentifier %>';\nimport AntdIcon, { AntdIconProps } from '../components/AntdIcon';\n\nconst <%= svgIdentifier %> = (\n  props: AntdIconProps,\n  ref: React.MutableRefObject<HTMLSpanElement>,\n) => <AntdIcon {...props} ref={ref} icon={<%= svgIdentifier %>Svg} />;\n\n<%= svgIdentifier %>.displayName = '<%= svgIdentifier %>';\nexport default React.forwardRef<HTMLSpanElement, AntdIconProps>(<%= svgIdentifier %>);\n"
+          ).trim()
+        );
+        file.contents = Buffer.from(
+          render({
+            svgIdentifier: name,
+          })
+        );
+        file.extname = ".tsx";
+        cb(null, file);
       })
-
-      // 2.3 generate abstract node with the theme "outlined"
-      //     generateIcons({
-      //       theme: 'twotone',
-      //       from: ['svg/twotone/*.svg'],
-      //       toDir: 'src/asn',
-      //       svgoConfig: remainFillConfig,
-      //       extraNodeTransformFactories: [
-      //         assignAttrsAtTag('svg', { focusable: 'false' }),
-      //         adjustViewBox,
-      //         setDefaultColorAtPathTag('#333')
-      //       ],
-      //       stringify: twotoneStringify,
-      //       template: iconTemplate,
-      //       mapToInterpolate: ({ name, content }) => ({
-      //         identifier: getIdentifier({ name, themeSuffix: 'TwoTone' }),
-      //         content
-      //       }),
-      //       filename: ({ name }) => getIdentifier({ name, themeSuffix: 'TwoTone' })
-      //     })
-    ),
-    parallel(
-      // 3.1 generate entry file: src/index.ts
-      generateEntry({
-        entryName: "index.ts",
-        from: [`${to}/asn/*.ts`],
-        // form: ['src/asn/*.ts'],
-        toDir: to,
-        // toDir: 'src',
-        banner: "// This index.ts file is generated automatically.\n",
-        template: `export { default as <%= identifier %> } from '<%= path %>';`,
-        mapToInterpolate: ({ name: identifier }) => ({
-          identifier,
-          path: `./asn/${identifier}`,
-        }),
-      })
-
-      // 3.2 generate inline SVG files
-      //   generateInline({
-      //     from: ["src/asn/*.ts"],
-      //     toDir: ({ _meta }) => `inline-svg/${_meta && _meta.theme}`,
-      //     getIconDefinitionFromSource: (content: string): IconDefinition => {
-      //       const extract = ExtractRegExp.exec(content);
-      //       if (extract === null || !extract[1]) {
-      //         throw new Error("Failed to parse raw icon definition: " + content);
-      //       }
-      //       return new Function(`return ${extract[1]}`)() as IconDefinition;
-      //     },
-      //   }),
-      // 3.3 generate inline SVG files with namespace
-      //   generateInline({
-      //     from: ["src/asn/*.ts"],
-      //     toDir: ({ _meta }) => `inline-namespaced-svg/${_meta && _meta.theme}`,
-      //     getIconDefinitionFromSource: (content: string): IconDefinition => {
-      //       const extract = ExtractRegExp.exec(content);
-      //       if (extract === null || !extract[1]) {
-      //         throw new Error("Failed to parse raw icon definition: " + content);
-      //       }
-      //       return new Function(`return ${extract[1]}`)() as IconDefinition;
-      //     },
-      //     renderOptions: {
-      //       extraSVGAttrs: { xmlns: "http://www.w3.org/2000/svg" },
-      //     },
-      //   })
     )
-  );
-};
-
-export function generate({ from, to }: Params) {
-  return generateIcons({
-    theme: "outlined",
-    from: [from],
-    toDir: `${to}/asn`,
-    // from: ["svg/outlined/*.svg"],
-    // toDir: "src/asn",
-    svgoConfig: generalConfig,
-    extraNodeTransformFactories: [
-      assignAttrsAtTag("svg", { focusable: "false" }),
-      adjustViewBox,
-    ],
-    stringify: JSON.stringify,
-    template: iconTemplate,
-    mapToInterpolate: ({ name, content }) => ({
-      identifier: getIdentifier({ name, themeSuffix: "Outlined" }),
-      content,
-    }),
-    filename: ({ name }) => getIdentifier({ name, themeSuffix: "Outlined" }),
-  });
+    // .pipe(two)
+    // .pipe(rename)
+    .pipe(vinyl_fs.dest(to));
 }
-
-export function fake(string: string, name: string) {
-  const svgoConfig = generalConfig;
-  const res = t(string, {
-    name,
-    theme: "outlined",
-    extraNodeTransformFactories: [
-      assignAttrsAtTag("svg", { focusable: "false" }),
-      adjustViewBox,
-    ],
-    stringify: JSON.stringify,
-  });
-  console.log(res);
-  // const res = svgo(svgoConfig);
-  // console.log(res);
-
-  // svg2Definition({
-  //   theme: "outlined",
-  //   extraNodeTransformFactories: [
-  //     assignAttrsAtTag("svg", { focusable: "false" }),
-  //     adjustViewBox,
-  //   ],
-  //   stringify: JSON.stringify,
-  // });
-  // useTemplate({
-  //   template: iconTemplate,
-  //   mapToInterpolate: ({ name, content }) => ({
-  //     identifier: getIdentifier({ name, themeSuffix: "Outlined" }),
-  //     content,
-  //   }),
-  // });
-  // rename((file) => {
-  //   if (file.basename) {
-  //     const filename = ({ name }) =>
-  //       getIdentifier({ name, themeSuffix: "Outlined" });
-  //     file.basename = filename({ name: file.basename });
-  //     file.extname = ".ts";
-  //   }
-  // });
-}
+/**
+ *
+ */
+// function walk<T>(fn: (iconDef: IconDefinitionWithIdentifier) => Promise<T>) {
+//   return Promise.all(
+//     Object.keys(allIconDefs).map((svgIdentifier) => {
+//       const iconDef = (allIconDefs as { [id: string]: IconDefinition })[
+//         svgIdentifier
+//       ];
+//       return fn({ svgIdentifier, ...iconDef });
+//     })
+//   );
+// }
+// async function generateIcons() {
+//   const iconsDir = join(__dirname, "../src/icons");
+//   try {
+//     await promisify(access)(iconsDir);
+//   } catch (err) {
+//     await promisify(mkdir)(iconsDir);
+//   }
+//   const iconSource = "@cf2e/icons-svg/es";
+//   const render = template(
+//     `
+// // GENERATE BY ./scripts/generate.ts
+// // DON NOT EDIT IT MANUALLY
+// import * as React from 'react'
+// import <%= svgIdentifier %>Svg from '${iconSource}/asn/<%= svgIdentifier %>';
+// import AntdIcon, { AntdIconProps } from '../components/AntdIcon';
+// const <%= svgIdentifier %> = (
+//   props: AntdIconProps,
+//   ref: React.MutableRefObject<HTMLSpanElement>,
+// ) => <AntdIcon {...props} ref={ref} icon={<%= svgIdentifier %>Svg} />;
+// <%= svgIdentifier %>.displayName = '<%= svgIdentifier %>';
+// export default React.forwardRef<HTMLSpanElement, AntdIconProps>(<%= svgIdentifier %>);
+// `.trim()
+//   );
+//   await walk(async ({ svgIdentifier }) => {
+//     // generate icon file
+//     writeFileSync(
+//       resolve(__dirname, `../src/icons/${svgIdentifier}.tsx`),
+//       render({ svgIdentifier })
+//     );
+//   });
+//   // generate icon index
+//   const entryText = Object.keys(allIconDefs)
+//     .sort()
+//     .map(
+//       (svgIdentifier) =>
+//         `export { default as ${svgIdentifier} } from './${svgIdentifier}';`
+//     )
+//     .join("\n");
+//   await promisify(appendFile)(
+//     resolve(__dirname, "../src/icons/index.tsx"),
+//     `
+// // GENERATE BY ./scripts/generate.ts
+// // DON NOT EDIT IT MANUALLY
+// ${entryText}
+//     `.trim()
+//   );
+// }
+// async function generateEntries() {
+//   const render = template(
+//     `
+// 'use strict';
+//   Object.defineProperty(exports, "__esModule", {
+//     value: true
+//   });
+//   exports.default = void 0;
+//   var _<%= svgIdentifier %> = _interopRequireDefault(require('./lib/icons/<%= svgIdentifier %>'));
+//   function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+//   var _default = _<%= svgIdentifier %>;
+//   exports.default = _default;
+//   module.exports = _default;
+// `.trim()
+//   );
+//   await walk(async ({ svgIdentifier }) => {
+//     // generate `Icon.js` in root folder
+//     await writeFile(
+//       path.resolve(__dirname, `../${svgIdentifier}.js`),
+//       render({
+//         svgIdentifier,
+//       })
+//     );
+//     // generate `Icon.d.ts` in root folder
+//     await writeFile(
+//       path.resolve(__dirname, `../${svgIdentifier}.d.ts`),
+//       `export { default } from './lib/icons/${svgIdentifier}';`
+//     );
+//   });
+// }
