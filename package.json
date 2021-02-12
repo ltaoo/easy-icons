@@ -28,12 +28,14 @@
     "url": "git@gitlab.weipaitang.com:bd/cf2e.git"
   },
   "scripts": {
-    "g": "npm run generate",
-    "generate": "cross-env NODE_ENV=production gulp --require ts-node/register/transpile-only",
+    "c": "node example/clean.js",
+    "g": "node example/generateAsn.js",
+    "prebuild": "node scripts/clean.js",
+    "postbuild": "node scripts/copy.js",
     "type-check": "tsc --noEmit",
-    "build:es": "tsc --project tsconfig.json --module esnext --outDir es",
+    "build:es":"tsc --project tsconfig.json --module esnext --outDir es",
     "build:lib": "tsc --project tsconfig.json --module commonjs --outDir lib",
-    "build": "cross-env NODE_ENV=production && npm run build:es && npm run build:lib",
+    "build": "cross-env NODE_ENV=production && npm run build:lib",
     "test": "cross-env NODE_ENV=test && npm run test:unit",
     "test:unit": "jest",
     "prepublishOnly": "npm run test && npm run g && npm run build && npm run type-check && npm run digest",

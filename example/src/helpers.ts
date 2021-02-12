@@ -1,8 +1,8 @@
-import { IconDefinition, AbstractNode } from "./types";
+import { IconDefinition, AbstractNode } from './types';
 
 const defaultColors = {
-  primaryColor: "#333",
-  secondaryColor: "#E6E6E6",
+  primaryColor: '#333',
+  secondaryColor: '#E6E6E6'
 };
 
 export interface HelperRenderOptions {
@@ -15,16 +15,11 @@ export interface HelperRenderOptions {
   };
 }
 
-/**
- * 根据？生成 svg 内容
- * @param icond
- * @param options
- */
 export function renderIconDefinitionToSVGElement(
   icond: IconDefinition,
   options: HelperRenderOptions = {}
 ): string {
-  if (typeof icond.icon === "function") {
+  if (typeof icond.icon === 'function') {
     // two-tone
     const placeholders = options.placeholders || defaultColors;
     return renderAbstractNodeToSVGElement(
@@ -36,20 +31,15 @@ export function renderIconDefinitionToSVGElement(
   return renderAbstractNodeToSVGElement(icond.icon, options);
 }
 
-/**
- * 根据抽象节点生成 svg 内容
- * @param node - 抽象节点，即 abstract node，asn
- * @param options
- */
 function renderAbstractNodeToSVGElement(
   node: AbstractNode,
   options: HelperRenderOptions
 ): string {
   const targetAttrs =
-    node.tag === "svg"
+    node.tag === 'svg'
       ? {
           ...node.attrs,
-          ...(options.extraSVGAttrs || {}),
+          ...(options.extraSVGAttrs || {})
         }
       : node.attrs;
   const attrs = Object.keys(targetAttrs).reduce((acc: string[], nextKey) => {
@@ -59,10 +49,10 @@ function renderAbstractNodeToSVGElement(
     acc.push(token);
     return acc;
   }, []);
-  const attrsToken = attrs.length ? " " + attrs.join(" ") : "";
+  const attrsToken = attrs.length ? ' ' + attrs.join(' ') : '';
   const children = (node.children || [])
     .map((child) => renderAbstractNodeToSVGElement(child, options))
-    .join("");
+    .join('');
 
   if (children && children.length) {
     return `<${node.tag}${attrsToken}>${children}</${node.tag}>`;

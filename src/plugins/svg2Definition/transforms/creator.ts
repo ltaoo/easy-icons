@@ -9,7 +9,7 @@ import {
   where,
   mergeRight
 } from 'ramda';
-import { AbstractNode } from '../../../templates/types';
+import { AbstractNode } from '../../../types';
 
 type Dictionary = Record<string, string>;
 
