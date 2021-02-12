@@ -6,7 +6,7 @@ import {
     isIconDefinition,
     warning,
     //   useInsertStyles,
-} from '../utils';
+} from './utils';
 
 export interface IconProps {
     icon: IconDefinition;

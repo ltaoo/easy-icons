@@ -1,3 +1,3 @@
-const { generateIcons } = require('./index');
+const { generateAsn } = require('./index');
 
-generateIcons();
+generateAsn();

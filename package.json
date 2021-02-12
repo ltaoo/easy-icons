@@ -1,5 +1,5 @@
 {
-  "name": "icons-svg",
+  "name": "e-icons",
   "version": "1.0.0",
   "description": "Abstract nodes for @cf2e/icons.",
   "keywords": [
@@ -8,13 +8,14 @@
   "author": "yaojh <yaojh@weipaitang.com>",
   "homepage": "",
   "license": "ISC",
+  "bin": {
+    "ei": "./bin/index.js"
+  },
   "main": "lib/index.js",
-  "module": "es/index.js",
+  "typings": "lib/index.d.ts",
   "files": [
     "lib",
-    "es",
-    "inline-svg",
-    "inline-namespaced-svg"
+    "bin"
   ],
   "directories": {
     "lib": "lib",
@@ -30,10 +31,11 @@
   "scripts": {
     "c": "node example/clean.js",
     "g": "node example/generateAsn.js",
+    "gi": "node example/generateIcons.js",
     "prebuild": "node scripts/clean.js",
     "postbuild": "node scripts/copy.js",
     "type-check": "tsc --noEmit",
-    "build:es":"tsc --project tsconfig.json --module esnext --outDir es",
+    "build:es": "tsc --project tsconfig.json --module esnext --outDir es",
     "build:lib": "tsc --project tsconfig.json --module commonjs --outDir lib",
     "build": "cross-env NODE_ENV=production && npm run build:lib",
     "test": "cross-env NODE_ENV=test && npm run test:unit",
@@ -89,7 +91,8 @@
     "classnames": "^2.2.6",
     "insert-css": "^2.0.0",
     "rc-util": "^5.0.1",
-    "vinyl-fs": "^3.0.3"
+    "vinyl-fs": "^3.0.3",
+    "yargs": "^17.0.0-candidate.0"
   },
   "peerDependencies": {
     "react": "^16.14.0"

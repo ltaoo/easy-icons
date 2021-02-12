@@ -1,7 +1,7 @@
 import * as React from 'react';
 import classNames from 'classnames';
 
-import { warning, svgBaseProps } from '../utils';
+import { warning, svgBaseProps } from './utils';
 
 export interface IconBaseProps extends React.HTMLProps<HTMLSpanElement> {
   spin?: boolean;

@@ -77,6 +77,7 @@ function getNameAndThemeFromPath(filepath: string) {
     theme: theme,
   };
 }
+
 const one = through2.obj(async (file, _, cb) => {
   if (file.isNull()) {
     return cb(null, file);
@@ -115,23 +116,42 @@ const rename = through2.obj((file, _, cb) => {
   file.extname = ".ts";
   return cb(null, file);
 });
+
+const SVG_FILES: any[] = [];
 /**
  * 批量转换文件
  */
 export default function generateAsn({
   from,
   to,
+  cb,
 }: {
   from: string;
   to: string;
+  cb?: (files: any[]) => void;
 }) {
-  // 编译 svg 文件
-  var pattern = `${from}/**/*.svg`;
+  let count = 0;
+  const pattern = `${from}/**/*.svg`;
   vfs
     .src(pattern)
+    .pipe(
+      through2.obj((file, _, callback) => {
+        count += 1;
+        callback(null, file);
+      })
+    )
     .pipe(one)
     .pipe(two)
     .pipe(rename)
+    .pipe(
+      through2.obj((file, _, callback) => {
+        SVG_FILES.push(file);
+        callback(null, file);
+        if (SVG_FILES.length === count && cb) {
+          cb(SVG_FILES);
+        }
+      })
+    )
     .pipe(vfs.dest(to));
 }
 export function copyFiles(patterns: string, to: string) {
@@ -163,7 +183,7 @@ export function createTsxFile({
           (
             "\n// GENERATE BY ./scripts/generate.ts\n// DON NOT EDIT IT MANUALLY\n\nimport * as React from 'react'\nimport <%= svgIdentifier %>Svg from '" +
             iconsPath +
-            "/<%= svgIdentifier %>';\nimport AntdIcon, { AntdIconProps } from '../components/AntdIcon';\n\nconst <%= svgIdentifier %> = (\n  props: AntdIconProps,\n  ref: React.MutableRefObject<HTMLSpanElement>,\n) => <AntdIcon {...props} ref={ref} icon={<%= svgIdentifier %>Svg} />;\n\n<%= svgIdentifier %>.displayName = '<%= svgIdentifier %>';\nexport default React.forwardRef<HTMLSpanElement, AntdIconProps>(<%= svgIdentifier %>);\n"
+            "/<%= svgIdentifier %>';\nimport AntdIcon, { AntdIconProps } from '../components/AntdIcon';\n\nconst <%= svgIdentifier %> = (\n  props: AntdIconProps,\n  ref: React.ForwardedRef<HTMLSpanElement>,\n) => <AntdIcon {...props} ref={ref} icon={<%= svgIdentifier %>Svg} />;\n\n<%= svgIdentifier %>.displayName = '<%= svgIdentifier %>';\nexport default React.forwardRef<HTMLSpanElement, AntdIconProps>(<%= svgIdentifier %>);\n"
           ).trim()
         );
         file.contents = Buffer.from(
@@ -180,25 +200,25 @@ export function createTsxFile({
     .pipe(vfs.dest(to));
 }
 
-function generateEntry(output: string) {
+export function generateEntry(
+  fn: (filepath: string) => { identifier: string; path: string },
+  output: string,
+  cachedFiles?: any[]
+) {
   // 生成入口文件
   const entryFileTemplate =
     "export { default as <%= identifier %> } from '<%= path %>';";
-  const files = globby
-    .sync("asn/*.ts", { cwd: output })
-    .map(function(filepath) {
-      const { name } = parse(filepath);
-      const identifier = getIdentifier({ name: name });
-      const path = `./asn/${identifier}`;
-      return template(entryFileTemplate)({
-        identifier: identifier,
-        path: path,
-      });
+  const files = cachedFiles || globby.sync("asn/*.ts", { cwd: output });
+  const content = files
+    .map((filepath: any) => {
+      const params = fn(filepath);
+      if (params.identifier === undefined || params.path === undefined) {
+        throw new Error("identifier or path can't be undefined");
+      }
+      return template(entryFileTemplate)(params);
     })
     .join("\n");
-  writeFileSync(`${output}/index.ts`, files);
-  // 拷贝 d.ts 文件
-  vfs.src(`${resolve(__dirname, "templates")}/*.ts`).pipe(vfs.dest(output));
+  writeFileSync(`${output}/index.ts`, content);
 }
 /**
  *

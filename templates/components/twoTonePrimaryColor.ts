@@ -1,5 +1,5 @@
 import ReactIcon from './IconBase';
-import { normalizeTwoToneColors } from '../utils';
+import { normalizeTwoToneColors } from './utils';
 
 export type TwoToneColor = string | [string, string];
 

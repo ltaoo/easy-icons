@@ -17,3 +17,6 @@ vfs
   .pipe(vfs.dest(resolve("../lib/types")));
 
 // 拷贝组件
+vfs
+  .src([resolve("../templates/components/*")])
+  .pipe(vfs.dest(resolve("../lib/components")));

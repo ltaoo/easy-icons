@@ -10,7 +10,7 @@ import {
     TwoToneColor,
     setTwoToneColor,
 } from './twoTonePrimaryColor';
-import { normalizeTwoToneColors } from '../utils';
+import { normalizeTwoToneColors } from './utils';
 
 export interface AntdIconProps extends IconBaseProps {
     twoToneColor?: TwoToneColor;
