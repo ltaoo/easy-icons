@@ -1,11 +1,12 @@
 {
   "name": "e-icons",
-  "version": "1.0.0",
-  "description": "Abstract nodes for @cf2e/icons.",
+  "version": "0.1.0",
+  "description": "Use svg icon link ant-design/icons.",
   "keywords": [
-    "icons"
+    "icons",
+    "ant-design/icons"
   ],
-  "author": "yaojh <yaojh@weipaitang.com>",
+  "author": "litao<litaowork@aliyun.com>",
   "homepage": "",
   "license": "ISC",
   "bin": {
@@ -17,17 +18,6 @@
     "lib",
     "bin"
   ],
-  "directories": {
-    "lib": "lib",
-    "test": "__tests__"
-  },
-  "publishConfig": {
-    "registry": "http://npm.wpt.la/"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git@gitlab.weipaitang.com:bd/cf2e.git"
-  },
   "scripts": {
     "type-check": "tsc --noEmit",
     "build:es": "tsc --project tsconfig.json --module esnext --outDir es",
@@ -38,7 +28,6 @@
     "digest": "node scripts/digest.js"
   },
   "devDependencies": {
-    "@rgrove/parse-xml": "^2.0.2",
     "@types/lodash.camelcase": "^4.3.6",
     "@types/lodash.template": "^4.4.6",
     "@types/lodash.upperfirst": "^4.3.6",
@@ -47,17 +36,15 @@
     "@types/rgrove__parse-xml": "^1.1.0",
     "@types/svgo": "^1.3.1",
     "@types/through2": "^2.0.34",
-    "@typescript-eslint/eslint-plugin": "^2.21.0",
-    "@typescript-eslint/parser": "^2.21.0",
     "@umijs/fabric": "^2.2.2",
     "cross-env": "^7.0.0",
-    "eslint": "^7.16.0",
-    "svgo": "^1.3.2",
-    "through2": "^4.0.2",
     "ts-node": "^8.6.2",
     "typescript": "^3.8.3"
   },
   "dependencies": {
+    "@rgrove/parse-xml": "^2.0.2",
+    "svgo": "^1.3.2",
+    "through2": "^4.0.2",
     "del": "^5.1.0",
     "globby": "^11.0.0",
     "ramda": "^0.27.0",
@@ -66,8 +53,5 @@
     "lodash.upperfirst": "^4.3.1",
     "vinyl": "^2.2.0",
     "yargs": "^17.0.0-candidate.0"
-  },
-  "peerDependencies": {
-    "react": "^16.14.0"
   }
 }

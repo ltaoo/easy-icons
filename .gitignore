@@ -1,6 +1,8 @@
 .DS_Store
+
 node_modules/
 **/*/node_modules/
+
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -29,6 +31,10 @@ inline-namespaced-svg
 !docs/inline-svg
 es
 lib
+
+bin/tmp.json
+example/**/*
+!example/svg/**/*
 
 # docz
 .docz
