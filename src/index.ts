@@ -1,5 +1,5 @@
-import { readFileSync, writeFileSync } from "fs";
-import { resolve, parse, basename } from "path";
+import { mkdirSync, readFileSync, statSync, writeFileSync } from "fs";
+import { resolve, parse, basename, dirname } from "path";
 import SVGO from "svgo";
 import template from "lodash.template";
 import upperfirst from "lodash.upperfirst";
@@ -203,110 +203,36 @@ export function createTsxFile({
 export function generateEntry(
   fn: (filepath: string) => { identifier: string; path: string },
   output: string,
-  cachedFiles?: any[]
+  {
+    cachedFiles,
+    filename = `${output}/index.ts`,
+    content: forceContent,
+    templateContent = "export { default as <%= identifier %> } from '<%= path %>';",
+  }: {
+    cachedFiles?: any[];
+    content?: string;
+    filename?: string;
+    templateContent?: string;
+  } = {}
 ) {
   // 生成入口文件
-  const entryFileTemplate =
-    "export { default as <%= identifier %> } from '<%= path %>';";
+  const entryFileTemplate = templateContent;
   const files = cachedFiles || globby.sync("asn/*.ts", { cwd: output });
-  const content = files
-    .map((filepath: any) => {
-      const params = fn(filepath);
-      if (params.identifier === undefined || params.path === undefined) {
-        throw new Error("identifier or path can't be undefined");
-      }
-      return template(entryFileTemplate)(params);
-    })
-    .join("\n");
-  writeFileSync(`${output}/index.ts`, content);
+  const content =
+    forceContent ||
+    files
+      .map((filepath: any) => {
+        const params = fn(filepath);
+        if (params.identifier === undefined || params.path === undefined) {
+          throw new Error("identifier or path can't be undefined");
+        }
+        return template(entryFileTemplate)(params);
+      })
+      .join("\n");
+  try {
+    statSync(dirname(filename));
+  } catch {
+    mkdirSync(dirname(filename));
+  }
+  writeFileSync(filename, content);
 }
-/**
- *
- */
-// function walk<T>(fn: (iconDef: IconDefinitionWithIdentifier) => Promise<T>) {
-//   return Promise.all(
-//     Object.keys(allIconDefs).map((svgIdentifier) => {
-//       const iconDef = (allIconDefs as { [id: string]: IconDefinition })[
-//         svgIdentifier
-//       ];
-//       return fn({ svgIdentifier, ...iconDef });
-//     })
-//   );
-// }
-// async function generateIcons() {
-//   const iconsDir = join(__dirname, "../src/icons");
-//   try {
-//     await promisify(access)(iconsDir);
-//   } catch (err) {
-//     await promisify(mkdir)(iconsDir);
-//   }
-//   const iconSource = "@cf2e/icons-svg/es";
-//   const render = template(
-//     `
-// // GENERATE BY ./scripts/generate.ts
-// // DON NOT EDIT IT MANUALLY
-// import * as React from 'react'
-// import <%= svgIdentifier %>Svg from '${iconSource}/asn/<%= svgIdentifier %>';
-// import AntdIcon, { AntdIconProps } from '../components/AntdIcon';
-// const <%= svgIdentifier %> = (
-//   props: AntdIconProps,
-//   ref: React.MutableRefObject<HTMLSpanElement>,
-// ) => <AntdIcon {...props} ref={ref} icon={<%= svgIdentifier %>Svg} />;
-// <%= svgIdentifier %>.displayName = '<%= svgIdentifier %>';
-// export default React.forwardRef<HTMLSpanElement, AntdIconProps>(<%= svgIdentifier %>);
-// `.trim()
-//   );
-//   await walk(async ({ svgIdentifier }) => {
-//     // generate icon file
-//     writeFileSync(
-//       resolve(__dirname, `../src/icons/${svgIdentifier}.tsx`),
-//       render({ svgIdentifier })
-//     );
-//   });
-//   // generate icon index
-//   const entryText = Object.keys(allIconDefs)
-//     .sort()
-//     .map(
-//       (svgIdentifier) =>
-//         `export { default as ${svgIdentifier} } from './${svgIdentifier}';`
-//     )
-//     .join("\n");
-//   await promisify(appendFile)(
-//     resolve(__dirname, "../src/icons/index.tsx"),
-//     `
-// // GENERATE BY ./scripts/generate.ts
-// // DON NOT EDIT IT MANUALLY
-// ${entryText}
-//     `.trim()
-//   );
-// }
-// async function generateEntries() {
-//   const render = template(
-//     `
-// 'use strict';
-//   Object.defineProperty(exports, "__esModule", {
-//     value: true
-//   });
-//   exports.default = void 0;
-//   var _<%= svgIdentifier %> = _interopRequireDefault(require('./lib/icons/<%= svgIdentifier %>'));
-//   function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
-//   var _default = _<%= svgIdentifier %>;
-//   exports.default = _default;
-//   module.exports = _default;
-// `.trim()
-//   );
-//   await walk(async ({ svgIdentifier }) => {
-//     // generate `Icon.js` in root folder
-//     await writeFile(
-//       path.resolve(__dirname, `../${svgIdentifier}.js`),
-//       render({
-//         svgIdentifier,
-//       })
-//     );
-//     // generate `Icon.d.ts` in root folder
-//     await writeFile(
-//       path.resolve(__dirname, `../${svgIdentifier}.d.ts`),
-//       `export { default } from './lib/icons/${svgIdentifier}';`
-//     );
-//   });
-// }

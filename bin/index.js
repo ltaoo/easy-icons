@@ -59,7 +59,7 @@ yargs(hideBin(process.argv))
         fs.statSync(path.resolve(cwd, output, "asn"));
         generateIcons({ from: output, to: `${output}/icons`, cwd: output });
       } catch (err) {
-        throw new Error("请先执行 ei asn 生成 asn 文件");
+        throw err;
       }
     }
   )
@@ -117,7 +117,9 @@ async function generateAsn({ from, to, cwd }) {
           };
         },
         cwd,
-        files
+        {
+          cachedFiles: files,
+        }
       );
     },
   });
@@ -132,12 +134,43 @@ function generateIcons({ from, to, cwd }) {
     iconsPath: "../asn",
   });
   copyFiles("components/**/*", path.resolve(cwd, "components"));
-  generateEntry((filepath) => {
-    const { name } = path.parse(filepath);
-    return {
-      identifier: name,
-      path: `./icons/${name}`,
-    };
-  }, cwd);
+  generateEntry(
+    (filepath) => {
+      const { name } = path.parse(filepath);
+      return {
+        identifier: name,
+        path: `./${name}`,
+      };
+    },
+    cwd,
+    { filename: path.resolve(to, "./index.ts") }
+  );
+  generateEntry(
+    (filepath) => {
+      const { name } = path.parse(filepath);
+      return {
+        identifier: name,
+        path: `./${name}`,
+      };
+    },
+    cwd,
+    { content: "export * from './icons'" }
+  );
+//   generateEntry(
+//     (filepath) => {
+//       const { name } = path.parse(filepath);
+//       return {
+//         identifier: name,
+//         path: `./icons/${name}`,
+//       };
+//     },
+//     cwd,
+//     {
+//       filename: path.resolve(path.dirname(to), "index.d.ts"),
+//       templateContent: `import <%= identifier %>Icon from '<%= path %>';
+// export declare const <%= identifier %>: typeof <%= identifier %>Icon;
+// `,
+//     }
+//   );
 }
 module.exports.generateIcons = generateIcons;
