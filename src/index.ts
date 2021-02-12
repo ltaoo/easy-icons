@@ -169,7 +169,7 @@ export function createTsxFile({
   to: string;
   iconsPath: string;
 }) {
-  const pattern = from + "/**/*.ts";
+  const pattern = `${from}/**/*.ts`;
   vfs
     .src(pattern)
     .pipe(

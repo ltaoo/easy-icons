@@ -42,6 +42,28 @@ yargs(hideBin(process.argv))
     }
   )
   .command(
+    "icons",
+    "generate react icon components.",
+    (yargs) => {
+      yargs.option("output", {
+        describe: "output",
+      });
+    },
+    (argv) => {
+      if (argv.verbose) console.info(`generate react icon components.`);
+      const { output } = argv;
+      // 先检查是否生成了 asn
+      try {
+        const cwd = process.cwd();
+        console.log(path.resolve(cwd, output, "asn"));
+        fs.statSync(path.resolve(cwd, output, "asn"));
+        generateIcons({ from: output, to: `${output}/icons`, cwd: output });
+      } catch (err) {
+        throw new Error("请先执行 ei asn 生成 asn 文件");
+      }
+    }
+  )
+  .command(
     "clean",
     "clean generated files",
     (yargs) => {},
@@ -66,8 +88,12 @@ function clean() {
       fs.readFileSync(path.resolve(__dirname, "tmp.json"), "utf-8")
     );
     console.log("clean files", output, svgDir);
-    del([`${output}/**/*`, `!${svgDir}`]);
-    del(path.resolve(__dirname, "tmp.json"));
+    del([`${output}/**/*`, `!${svgDir}`], {
+      force: true,
+    });
+    del(path.resolve(__dirname, "tmp.json"), {
+      force: true,
+    });
   } catch (err) {
     console.log("clean files fail", err);
     // ...
@@ -101,7 +127,7 @@ module.exports.generateAsn = generateAsn;
 
 function generateIcons({ from, to, cwd }) {
   createTsxFile({
-    from,
+    from: `${from}/asn`,
     to,
     iconsPath: "../asn",
   });

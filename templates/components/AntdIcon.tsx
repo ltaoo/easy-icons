@@ -1,7 +1,7 @@
 import * as React from 'react';
 import classNames from 'classnames';
 
-import { IconDefinition } from '@cf2e/icons-svg/lib/types';
+import { IconDefinition } from '../types';
 
 import { IconBaseProps } from './Icon';
 import ReactIcon from './IconBase';

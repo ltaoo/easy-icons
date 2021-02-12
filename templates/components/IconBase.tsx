@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { AbstractNode, IconDefinition } from '@cf2e/icons-svg/lib/types';
+import { AbstractNode, IconDefinition } from '../types';
 import {
     generate,
     getSecondaryColor,
