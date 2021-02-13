@@ -1,5 +1,5 @@
 # e-icons
-`e-icons` 是一个能让使用自己的 `svg icon` 就像使用 `@ant-design/icons` 体验一样的工具。
+`e-icons` 是一个能让使用自己的 `svg icon` 就像使用 `@ant-design/icons` 的工具。
 
 本项目核心逻辑参考自 `@ant-design/icons`，将其改写为一个能在任意项目中使用的包。核心逻辑就是将 `svg` 文件解析为 `js` 对象，并提供 `React` 组件可直接使用该 `js` 对象渲染图标。
 
@@ -96,5 +96,9 @@ npm publish
 
 
 ## faq
+
+### 新增一个 icon 要怎么做
+将 `svg` 文件放置在对应的文件夹下后，执行 `yarn ei asn src/svg --output src && yarn ei icons --output src` 后再打包即可。
+其实和初始化的流程是完全一致的。
 ### 如何实现按需加载
 使用 `babel-plugin-import` 插件，并配置

@@ -1,7 +1,7 @@
 {
   "name": "e-icons",
   "version": "0.1.0",
-  "description": "Use svg icon link ant-design/icons.",
+  "description": "Use svg icon like ant-design/icons.",
   "keywords": [
     "icons",
     "ant-design/icons"
@@ -16,16 +16,17 @@
   "typings": "lib/index.d.ts",
   "files": [
     "lib",
-    "bin"
+    "bin",
+    "templates"
   ],
   "scripts": {
     "type-check": "tsc --noEmit",
+    "prebuild": "node scripts/clean.js",
     "build:es": "tsc --project tsconfig.json --module esnext --outDir es",
     "build:lib": "tsc --project tsconfig.json --module commonjs --outDir lib",
     "build": "cross-env NODE_ENV=production && npm run build:lib",
-    "test": "cross-env NODE_ENV=test && npm run test:unit",
-    "prepublishOnly": "npm run test && npm run g && npm run build && npm run type-check && npm run digest",
-    "digest": "node scripts/digest.js"
+    "postbuild": "node scripts/copy.js",
+    "prepublishOnly": "npm run build"
   },
   "devDependencies": {
     "@types/lodash.camelcase": "^4.3.6",
