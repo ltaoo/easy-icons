@@ -33,7 +33,7 @@ es
 lib
 
 bin/tmp.json
-example/**/*
+example/src/**/*
 !example/svg/**/*
 
 # docz

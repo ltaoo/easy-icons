@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>icon preview</title>
+    <style>
+        ul,
+        li {
+            margin: 0;
+            padding: 0;
+        }
+
+        ul.anticons-list {
+            margin: 10px 0;
+            overflow: hidden;
+            direction: ltr;
+            list-style: none;
+        }
+
+        ul.anticons-list li {
+            position: relative;
+            float: left;
+            width: 16.66%;
+            height: 100px;
+            overflow: hidden;
+            color: #555;
+            text-align: center;
+            list-style: none;
+            background-color: inherit;
+            border-radius: 4px;
+            cursor: pointer;
+            -webkit-transition: color .3s ease-in-out, background-color .3s ease-in-out;
+            transition: color .3s ease-in-out, background-color .3s ease-in-out;
+        }
+
+        ul.anticons-list li .anticon {
+            margin: 12px 0 8px;
+            font-size: 36px;
+            -webkit-transition: -webkit-transform .3s ease-in-out;
+            transition: -webkit-transform .3s ease-in-out;
+            transition: transform .3s ease-in-out;
+            transition: transform .3s ease-in-out, -webkit-transform .3s ease-in-out;
+            will-change: transform;
+        }
+
+        ul.anticons-list li .anticon-class {
+            display: block;
+            font-family: Lucida Console, Consolas, Monaco, Andale Mono, Ubuntu Mono, monospace;
+            white-space: nowrap;
+            text-align: center;
+            -webkit-transform: scale(.83);
+            transform: scale(.83);
+        }
+
+        ul.anticons-list li .anticon-class .ant-badge {
+            -webkit-transition: color .3s ease-in-out;
+            transition: color .3s ease-in-out;
+        }
+
+        .ant-badge {
+            -webkit-box-sizing: border-box;
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            color: rgba(0, 0, 0, .85);
+            font-size: 14px;
+            font-variant: tabular-nums;
+            line-height: 1.5715;
+            list-style: none;
+            -webkit-font-feature-settings: "tnum";
+            font-feature-settings: "tnum";
+            position: relative;
+            display: inline-block;
+            line-height: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <%= content %>
+</body>
+
+</html>

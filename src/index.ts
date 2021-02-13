@@ -1,8 +1,11 @@
 import { mkdirSync, readFileSync, statSync, writeFileSync } from "fs";
 import { resolve, parse, basename, dirname } from "path";
+
+import React from "react";
+import ReactDOMServer from "react-dom/server";
 import SVGO from "svgo";
 import template from "lodash.template";
-import upperfirst from "lodash.upperfirst";
+import upperFirst from "lodash.upperfirst";
 import vfs from "vinyl-fs";
 import through2 from "through2";
 import globby from "globby";
@@ -14,8 +17,9 @@ import {
   assignAttrsAtTag,
   adjustViewBox,
 } from "./plugins/svg2Definition/transforms";
-import { ThemeType, ThemeTypeUpperCase } from "./types";
+import { ThemeTypeUpperCase } from "./types";
 
+const cwd = process.cwd();
 const THIS_ROOT_DIR = resolve(__dirname);
 const TEMPLATES_DIR = resolve(THIS_ROOT_DIR, "../templates");
 function r(...paths: string[]) {
@@ -43,12 +47,16 @@ const iconTsFileTemplate = readFileSync(
   resolve(TEMPLATES_DIR, "icon.ts.ejs"),
   "utf8"
 );
+const previewTemplate = readFileSync(
+  resolve(TEMPLATES_DIR, "index.html.ejs"),
+  "utf-8"
+);
 /**
  * asn 渲染成 ts 文件内容
  */
 export function asn2ts(asn: string) {
   const { name, theme } = JSON.parse(asn);
-  const mapToInterpolate = function({
+  const mapToInterpolate = function ({
     name,
     content,
   }: {
@@ -59,7 +67,7 @@ export function asn2ts(asn: string) {
       identifier: getIdentifier({
         name: name,
         themeSuffix: theme
-          ? (upperfirst(theme) as ThemeTypeUpperCase)
+          ? (upperFirst(theme) as ThemeTypeUpperCase)
           : undefined,
       }),
       content: content,
@@ -173,7 +181,7 @@ export function createTsxFile({
   vfs
     .src(pattern)
     .pipe(
-      through2.obj(function(file, _, cb) {
+      through2.obj(function (file, _, cb) {
         if (file.isNull()) {
           return cb(null, file);
         }
@@ -235,4 +243,78 @@ export function generateEntry(
     mkdirSync(dirname(filename));
   }
   writeFileSync(filename, content);
+}
+
+function render(files: string[]) {
+  return React.createElement(
+    "ul",
+    {
+      key: 10,
+      className: "anticons-list",
+    },
+    files.map((filepath) => {
+      // console.log(filepath);
+      const cwd = process.cwd();
+      const Icon = require(resolve(cwd, filepath)).default;
+      return React.createElement(
+        "li",
+        {
+          key: filepath,
+          className: "Outlined",
+        },
+        [
+          React.createElement(Icon, { key: 1 }),
+          React.createElement(
+            "span",
+            {
+              key: 2,
+              className: "anticon-class",
+            },
+            React.createElement(
+              "span",
+              { className: "ant-badge" },
+              parse(filepath).name
+            )
+          ),
+        ]
+      );
+    })
+  );
+}
+function sortByTheme(files: string[]) {
+  const themes = ["filled", "outlined", "twotone"];
+  return themes.map((theme) => {
+    return {
+      theme,
+      icons: files.filter((filepath) => {
+        if (filepath.includes(upperFirst(theme))) {
+          return true;
+        }
+        return false;
+      }),
+    };
+  });
+}
+export function generatePreview({ from, to }: { from: string; to: string }) {
+  const files = globby.sync([`${from}/*.js`, `!${from}/index.js`]);
+
+  const themes = sortByTheme(files);
+  const element = React.createElement(
+    "div",
+    { key: "div" },
+    themes.map(({ theme, icons }) => {
+      return React.createElement("div", { key: theme }, [
+        React.createElement("h2", { key: "h2" }, upperFirst(theme)),
+        render(icons),
+      ]);
+    })
+  );
+  const result = ReactDOMServer.renderToString(element);
+
+  writeFileSync(
+    resolve(process.cwd(), to, "preview.html"),
+    template(previewTemplate)({
+      content: result,
+    })
+  );
 }

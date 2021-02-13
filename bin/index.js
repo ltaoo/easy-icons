@@ -2,16 +2,22 @@
 const fs = require("fs");
 const path = require("path");
 
+const React = require("react");
+const ReactDOMServer = require("react-dom/server");
 const del = require("del");
 const yargs = require("yargs/yargs");
 const { hideBin } = require("yargs/helpers");
+const template = require("lodash.template");
+const upperFirst = require("lodash.upperfirst");
 
 const {
   default: transformer,
   createTsxFile,
   copyFiles,
   generateEntry,
+  generatePreview,
 } = require("../lib");
+const globby = require("globby");
 
 yargs(hideBin(process.argv))
   .command(
@@ -61,6 +67,23 @@ yargs(hideBin(process.argv))
       } catch (err) {
         throw err;
       }
+    }
+  )
+  .command(
+    "preview [icons]",
+    "generate page for preview",
+    (yargs) => {
+      yargs.positional("icons", {
+        describe: "bundled icons dir",
+      });
+      yargs.positional("output", {
+        describe: "dir generated save to",
+      });
+    },
+    (argv) => {
+      if (argv.verbose) console.info(`clean generated files.`);
+      const { icons, output } = argv;
+      generatePreview({ from: icons, to: output });
     }
   )
   .command(
@@ -156,21 +179,5 @@ function generateIcons({ from, to, cwd }) {
     cwd,
     { content: "export * from './icons'" }
   );
-//   generateEntry(
-//     (filepath) => {
-//       const { name } = path.parse(filepath);
-//       return {
-//         identifier: name,
-//         path: `./icons/${name}`,
-//       };
-//     },
-//     cwd,
-//     {
-//       filename: path.resolve(path.dirname(to), "index.d.ts"),
-//       templateContent: `import <%= identifier %>Icon from '<%= path %>';
-// export declare const <%= identifier %>: typeof <%= identifier %>Icon;
-// `,
-//     }
-//   );
 }
 module.exports.generateIcons = generateIcons;
