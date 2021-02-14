@@ -32,7 +32,6 @@ inline-namespaced-svg
 .umi
 es
 lib
-docs-dist
 
 bin/tmp.json
 example/src/**/*
