@@ -29,8 +29,10 @@ public
 inline-svg
 inline-namespaced-svg
 !docs/inline-svg
+.umi
 es
 lib
+docs-dist
 
 bin/tmp.json
 example/src/**/*

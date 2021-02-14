@@ -1,7 +1,7 @@
 {
   "name": "e-icons",
   "version": "0.1.0",
-  "description": "Use svg icon like ant-design/icons.",
+  "description": "Use svg icon like @ant-design/icons.",
   "keywords": [
     "icons",
     "ant-design/icons"
@@ -26,7 +26,9 @@
     "build:lib": "tsc --project tsconfig.json --module commonjs --outDir lib",
     "build": "cross-env NODE_ENV=production && npm run build:lib",
     "postbuild": "node scripts/copy.js",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "docs": "yarn dumi dev",
+    "build:docs": "yarn dumi build"
   },
   "devDependencies": {
     "@types/lodash.camelcase": "^4.3.6",
@@ -42,6 +44,7 @@
     "@types/vinyl-fs": "^2.4.11",
     "@umijs/fabric": "^2.2.2",
     "cross-env": "^7.0.0",
+    "dumi": "^1.1.4",
     "ts-node": "^8.6.2",
     "typescript": "^3.8.3"
   },
