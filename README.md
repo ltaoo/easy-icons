@@ -31,16 +31,17 @@ yarn add e-icons -D
 
 ```
 - src
-    - svg
-        - filled
-        - outlined
-        - twotone
+- svg
+    - filled
+    - outlined
+    - twotone
 package.json
 ```
+> `svg` 与 `src` 同级
 
 `svg` 图标按照类型放入这三个文件夹中。
 
-然后在项目根目录下，使用命令 `yarn ei asn src/svg --output src`，将在 `src` 文件夹下新增 `asn` 和 `index.ts` 等文件。
+然后在项目根目录下，使用命令 `yarn ei create asn src/svg --output src`，将在 `src` 文件夹下新增 `asn` 和 `index.ts` 等文件。
 再使用 `yarn ei icons --output src`，将在 `src` 目录下新增 `components`、`icons` 等目录。
 至此，项目就完成了，接下来需要将这个项目打包后发布，才能使用。
 

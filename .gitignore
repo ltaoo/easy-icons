@@ -35,8 +35,7 @@ lib
 docs-dist
 
 bin/tmp.json
-example/src/**/*
-!example/svg/**/*
+example/src
 
 # docz
 .docz

@@ -1,6 +1,3 @@
-// @ts-nocheck
-import { createTrasformStream } from "../creator";
-import { ThemeType, AbstractNode } from "../../templates/types";
 import {
   pipe,
   clone,
@@ -22,6 +19,8 @@ import {
   assoc,
 } from "ramda";
 import parseXML, { Element } from "@rgrove/parse-xml";
+
+import { ThemeType, AbstractNode } from "../../types";
 
 export interface AbstractNodeDefinition {
   name: string;
@@ -48,91 +47,6 @@ export type TransformOptions = Pick<XML2AbstractNodeOptions, "name" | "theme">;
 export interface TransformFactory {
   (options: TransformOptions): (asn: AbstractNode) => AbstractNode;
 }
-
-// SVG => IconDefinition
-export const svg2Definition = ({
-  theme,
-  extraNodeTransformFactories,
-  stringify,
-}: SVG2DefinitionOptions) =>
-  createTrasformStream((SVGString, { stem: name }) =>
-    applyTo(SVGString)(
-      pipe(
-        // 0. The SVG string is like that:
-        // <svg viewBox="0 0 1024 1024"><path d="..."/></svg>
-
-        parseXML,
-
-        // 1. The parsed XML root node is with the JSON shape:
-        // {
-        //   "type": "document",
-        //   "children": [
-        //     {
-        //       "type": "element",
-        //       "name": "svg",
-        //       "attributes": { "viewBox": "0 0 1024 1024" },
-        //       "children": [
-        //         {
-        //           "type": "element",
-        //           "name": "path",
-        //           "attributes": {
-        //             "d": "..."
-        //           },
-        //           "children": []
-        //         }
-        //       ]
-        //     }
-        //   ]
-        // }
-
-        pipe(
-          // @todo: "defaultTo" is not the best way to deal with the type Maybe<Element>
-          get<Element>(["children", 0]),
-          defaultTo(({} as any) as Element)
-        ),
-
-        // 2. The element node is with the JSON shape:
-        // {
-        //   "type": "element",
-        //   "name": "svg",
-        //   "attributes": { "viewBox": "0 0 1024 1024" },
-        //   "children": [
-        //     {
-        //       "type": "element",
-        //       "name": "path",
-        //       "attributes": {
-        //         "d": "..."
-        //       },
-        //       "children": []
-        //     }
-        //   ]
-        // }
-
-        element2AbstractNode({
-          name,
-          theme,
-          extraNodeTransformFactories,
-        }),
-
-        // 3. The abstract node is with the JSON shape:
-        // {
-        //   "tag": "svg",
-        //   "attrs": { "viewBox": "0 0 1024 1024", "focusable": "false" },
-        //   "children": [
-        //     {
-        //       "tag": "path",
-        //       "attrs": {
-        //         "d": "..."
-        //       }
-        //     }
-        //   ]
-        // }
-
-        pipe(objOf("icon"), assoc("name", name), assoc("theme", theme)),
-        defaultTo(JSON.stringify)(stringify)
-      )
-    )
-  );
 
 function element2AbstractNode({
   name,
@@ -175,8 +89,13 @@ function element2AbstractNode({
 }
 
 export function t(
-  SVGString,
-  { name, stringify, theme, extraNodeTransformFactories }
+  SVGString: string,
+  { name, stringify, theme, extraNodeTransformFactories }: {
+    name: string;
+    stringify: StringifyFn;
+    theme: ThemeType,
+    extraNodeTransformFactories: TransformFactory[];
+  }
 ) {
   return applyTo(SVGString)(
     pipe(

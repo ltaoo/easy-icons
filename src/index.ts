@@ -1,5 +1,5 @@
 import { mkdirSync, readFileSync, statSync, writeFileSync } from "fs";
-import { resolve, parse, basename, dirname } from "path";
+import { resolve, parse, dirname } from "path";
 
 import React from "react";
 import ReactDOMServer from "react-dom/server";
@@ -10,14 +10,15 @@ import vfs from "vinyl-fs";
 import through2 from "through2";
 import globby from "globby";
 
-import { getIdentifier } from "./utils";
+import { getIdentifier, getNameAndThemeFromPath } from "./utils";
 import { t } from "./plugins/svg2Definition";
 import { generalConfig } from "./plugins/svgo/presets";
 import {
   assignAttrsAtTag,
   adjustViewBox,
 } from "./plugins/svg2Definition/transforms";
-import { ThemeTypeUpperCase } from "./types";
+import { ThemeType, ThemeTypeUpperCase } from "./types";
+import { doesNotMatch } from "assert";
 
 const cwd = process.cwd();
 const THIS_ROOT_DIR = resolve(__dirname);
@@ -25,13 +26,22 @@ const TEMPLATES_DIR = resolve(THIS_ROOT_DIR, "../templates");
 function r(...paths: string[]) {
   return resolve(THIS_ROOT_DIR, ...paths);
 }
+const asnTemplate = readFileSync(resolve(TEMPLATES_DIR, "asn.ts.ejs"), "utf8");
+const iconTemplate = readFileSync(resolve(TEMPLATES_DIR, 'icon.tsx.ejs'), 'utf-8');
+const previewTemplate = readFileSync(resolve(TEMPLATES_DIR, "index.html.ejs"), "utf-8");
+const CACHE_DIR = '.cache';
+
+const themes = ["filled", "outlined", "twotone"];
 
 /**
  * svg 转 js 纯对象
+ * @param {string} svg - svg 文件内容
+ * @param {string} name - svg 文件名
+ * @param {string} theme - svg 主题
  */
-export async function svg2asn(string: string, name: string, theme: string) {
+export async function svg2asn(svg: string, name: string, theme: ThemeType) {
   const optimizer = new SVGO(generalConfig);
-  const { data } = await optimizer.optimize(string);
+  const { data } = await optimizer.optimize(svg);
   const asn = t(data, {
     name: name,
     theme: theme,
@@ -39,54 +49,41 @@ export async function svg2asn(string: string, name: string, theme: string) {
       assignAttrsAtTag("svg", { focusable: "false" }),
       adjustViewBox,
     ],
+    // @todo twotone 好像 stringify 不同
     stringify: JSON.stringify,
   });
   return asn;
 }
-const iconTsFileTemplate = readFileSync(
-  resolve(TEMPLATES_DIR, "icon.ts.ejs"),
-  "utf8"
-);
-const previewTemplate = readFileSync(
-  resolve(TEMPLATES_DIR, "index.html.ejs"),
-  "utf-8"
-);
 /**
- * asn 渲染成 ts 文件内容
+ * 生成对应 asn 文件
+ * @param {string} asn - svg2asn 转换得到的 asn
+ * @param {boolean} [typescript=true] - 是否生成 ts 文件
  */
-export function asn2ts(asn: string) {
+export function createAsnFile(asn: string, typescript: boolean = true) {
   const { name, theme } = JSON.parse(asn);
-  const mapToInterpolate = function ({
+  const mapToInterpolate = ({
     name,
     content,
   }: {
     name: string;
     content: string;
-  }) {
+  }) => {
+    const identifier = getIdentifier({
+      name: name,
+      themeSuffix: theme
+        ? (upperFirst(theme) as ThemeTypeUpperCase)
+        : undefined,
+    });
     return {
-      identifier: getIdentifier({
-        name: name,
-        themeSuffix: theme
-          ? (upperFirst(theme) as ThemeTypeUpperCase)
-          : undefined,
-      }),
+      identifier,
       content: content,
+      typescript,
     };
   };
-  var executor = template(iconTsFileTemplate);
+  const executor = template(asnTemplate);
   return executor(mapToInterpolate({ name: name, content: asn }));
 }
-
-function getNameAndThemeFromPath(filepath: string) {
-  const { name, dir } = parse(filepath);
-  const theme = basename(dir);
-  return {
-    name: name,
-    theme: theme,
-  };
-}
-
-const one = through2.obj(async (file, _, cb) => {
+const transformToAsn = () => through2.obj(async (file, _, cb) => {
   if (file.isNull()) {
     return cb(null, file);
   }
@@ -94,24 +91,23 @@ const one = through2.obj(async (file, _, cb) => {
   const { name, theme } = getNameAndThemeFromPath(filepath);
   const content = file.contents.toString();
   const nextContent = await svg2asn(content, name, theme);
-  file.contents = Buffer.from(nextContent as string);
+  file.contents = Buffer.from(nextContent);
   file.meta = {
     name: name,
     theme: theme,
   };
   return cb(null, file);
 });
-
-const two = through2.obj((file, _, cb) => {
+const transformToIcon = ({ typescript }: { typescript?: boolean } = {}) => through2.obj((file, _, cb) => {
   if (file.isNull()) {
     return cb(null, file);
   }
   var content = file.contents.toString();
-  var nextContent = asn2ts(content) as string;
+  var nextContent = createAsnFile(content, typescript) as string;
   file.contents = Buffer.from(nextContent);
   return cb(null, file);
 });
-const rename = through2.obj((file, _, cb) => {
+const rename = ({ typescript }: { typescript?: boolean } = {}) => through2.obj((file, _, cb) => {
   if (file.isNull()) {
     return cb(null, file);
   }
@@ -127,124 +123,189 @@ const rename = through2.obj((file, _, cb) => {
 
 const SVG_FILES: any[] = [];
 /**
- * 批量转换文件
+ * 批量转换 svg 文件成 js/ts 文件
+ * @param {string} svg - svg 文件夹
+ * @param {string} output - 生成的 asn 文件保存的路径
+ * @param {boolean} [typescript=true] - 生成的 asn 文件是否是 ts 文件
+ * @param {() => void} [cb] - 处理完所有文件后的回调（此时文件并没有生成）
  */
-export default function generateAsn({
-  from,
-  to,
-  cb,
+export function generateAsnFiles({
+  svg,
+  output,
+  typescript,
+  before,
+  done,
 }: {
-  from: string;
-  to: string;
-  cb?: (files: any[]) => void;
+  svg: string;
+  output: string;
+  typescript?: boolean,
+  before?: (files: any[]) => void;
+  done?: () => void;
 }) {
-  let count = 0;
-  const pattern = `${from}/**/*.svg`;
-  vfs
-    .src(pattern)
-    .pipe(
-      through2.obj((file, _, callback) => {
-        count += 1;
-        callback(null, file);
-      })
-    )
-    .pipe(one)
-    .pipe(two)
-    .pipe(rename)
-    .pipe(
-      through2.obj((file, _, callback) => {
-        SVG_FILES.push(file);
-        callback(null, file);
-        if (SVG_FILES.length === count && cb) {
-          cb(SVG_FILES);
+  return new Promise((res, reject) => {
+    if (validateSvgDir(svg) === false) {
+      reject(new Error(`${svg} is not existing.`));
+    }
+    updateCachedDir({
+      svg,
+      output,
+    });
+    const pattern = resolve(svg, '**', '*.svg');
+    // before process svg files
+    const svgFiles = globby.sync(pattern);
+    if (before) {
+      before(svgFiles);
+    }
+    updateCachedSvg({
+      original: svgFiles,
+    });
+    // begin process svg files
+    vfs
+      .src(pattern)
+      .pipe(transformToAsn())
+      .pipe(transformToIcon({ typescript }))
+      .pipe(rename({ typescript }))
+      .pipe(vfs.dest(resolve(output, 'asn')));
+    // check has created asn file
+    const asnPattern = resolve(output, 'asn', '**', '*.ts');
+    const timer = setInterval(() => {
+      const asnFiles = globby.sync(asnPattern);
+      // console.log('[]generateAsnFiles check has done', svgFiles.length, asnFiles.length);
+      if (svgFiles.length === asnFiles.length) {
+        clearInterval(timer);
+        updateCachedSvg({
+          asn: asnFiles,
+        });
+        if (done) {
+          // after process svg files
+          done();
         }
-      })
-    )
-    .pipe(vfs.dest(to));
+        res({
+          svg: svgFiles,
+          asn: asnFiles,
+        });
+      }
+    }, 800);
+  });
 }
-export function copyFiles(patterns: string, to: string) {
-  vfs.src(`${r()}/${patterns}`).pipe(vfs.dest(to));
+
+function checkHasAsnFiles() {
+  try {
+    statSync(DIR_JSON);
+    return true;
+  } catch (err) {
+    return false;
+  }
+
+
 }
 /**
- * 创建 tsx 文件供引用
+ * 创建 icon 组件文件
  */
-export function createTsxFile({
-  from,
-  to,
+export function generateIconFiles({
   iconsPath,
 }: {
-  from: string;
-  to: string;
   iconsPath: string;
 }) {
-  const pattern = `${from}/**/*.ts`;
-  vfs
-    .src(pattern)
-    .pipe(
-      through2.obj(function (file, _, cb) {
-        if (file.isNull()) {
-          return cb(null, file);
-        }
-        var path = file.path;
-        var name = parse(path).name;
-        var render = template(
-          (
-            "\n// GENERATE BY ./scripts/generate.ts\n// DON NOT EDIT IT MANUALLY\n\nimport * as React from 'react'\nimport <%= svgIdentifier %>Svg from '" +
-            iconsPath +
-            "/<%= svgIdentifier %>';\nimport AntdIcon, { AntdIconProps } from '../components/AntdIcon';\n\nconst <%= svgIdentifier %> = (\n  props: AntdIconProps,\n  ref: React.ForwardedRef<HTMLSpanElement>,\n) => <AntdIcon {...props} ref={ref} icon={<%= svgIdentifier %>Svg} />;\n\n<%= svgIdentifier %>.displayName = '<%= svgIdentifier %>';\nexport default React.forwardRef<HTMLSpanElement, AntdIconProps>(<%= svgIdentifier %>);\n"
-          ).trim()
-        );
-        file.contents = Buffer.from(
-          render({
+  return new Promise((res, reject) => {
+    if (checkHasAsnFiles() === false) {
+      return reject(new Error('请先生成 asn 文件'));
+    }
+
+    const { output } = readCachedFile(DIR_JSON);
+    const pattern = resolve(output, 'asn', '**', '*.ts');
+    vfs
+      .src(pattern)
+      .pipe(
+        through2.obj((file, _, cb) => {
+          if (file.isNull()) {
+            return cb(null, file);
+          }
+          const { path } = file;
+          const { name } = parse(path);
+          const render = template(iconTemplate);
+          const nextContent = render({
             svgIdentifier: name,
-          })
-        );
-        file.extname = ".tsx";
-        cb(null, file);
-      })
-    )
-    // .pipe(two)
-    // .pipe(rename)
-    .pipe(vfs.dest(to));
+            iconsPath,
+          });
+          file.contents = Buffer.from(nextContent);
+          file.extname = ".tsx";
+          cb(null, file);
+        })
+      )
+      .pipe(vfs.dest(resolve(output, 'icons')));
+    res(undefined);
+  });
 }
 
+/**
+ * 根据 icons 生成一个文件
+ * 它会从 output/asn 下找到所有 ts 文件，并使用路径来渲染内容
+ * @todo 它可以拆分成两个方法，一个单纯用来创建文件，一个用例读取 asn 后根据 asn 创建文件
+ * @param {function} fn - 如何根据 filepath 生成 identifier 和 path，这两个值将被渲染到文件中
+ * @param {string} output - 文件生成的路径
+ * @param {any[]} opts.cachedFiles - 使用指定的文件进行生成，而不去查找 asn 目录下的所有 ts 文件
+ * @param {string} opts.filename - 生成的文件名，如果传了该值，则可以自己指定生成的文件名，不自动生成为 output/index.ts
+ * @param {string} opts.content - 生成的文件内容，如果传了该值，则可以不根据模板渲染，而是强制使用该值
+ * @param {string} opts.templateContent - 渲染模板
+ */
 export function generateEntry(
   fn: (filepath: string) => { identifier: string; path: string },
-  output: string,
   {
-    cachedFiles,
-    filename = `${output}/index.ts`,
+    filepaths,
+    filename,
     content: forceContent,
-    templateContent = "export { default as <%= identifier %> } from '<%= path %>';",
+    template: t = "export { default as <%= identifier %> } from '<%= path %>';",
   }: {
-    cachedFiles?: any[];
+    filepaths?: any[];
     content?: string;
     filename?: string;
-    templateContent?: string;
+    template?: string;
   } = {}
 ) {
-  // 生成入口文件
-  const entryFileTemplate = templateContent;
-  const files = cachedFiles || globby.sync("asn/*.ts", { cwd: output });
-  const content =
-    forceContent ||
-    files
-      .map((filepath: any) => {
-        const params = fn(filepath);
-        if (params.identifier === undefined || params.path === undefined) {
-          throw new Error("identifier or path can't be undefined");
-        }
-        return template(entryFileTemplate)(params);
-      })
-      .join("\n");
-  try {
-    statSync(dirname(filename));
-  } catch {
-    mkdirSync(dirname(filename));
-  }
-  writeFileSync(filename, content);
+  return new Promise((res, reject) => {
+    if (checkHasAsnFiles() === false) {
+      return reject(new Error('请先生成 asn 文件'));
+    }
+    const { output } = readCachedFile(DIR_JSON);
+    const files = filepaths || globby.sync(resolve(output, 'asn', '*.ts'));
+    // console.log('[]generateEntry - collected files', output, files);
+    const content =
+      forceContent ||
+      files
+        .map((filepath: any) => {
+          const params = fn(filepath);
+          if (params.identifier === undefined || params.path === undefined) {
+            throw new Error("identifier or path can't be undefined");
+          }
+          return template(t)(params);
+        })
+        .join("\n");
+
+    const name = filename || resolve(output, 'index.ts');
+    ensure(dirname(name));
+    writeFileSync(name, content);
+    res(name);
+  });
 }
 
+function ensure(filepath: string, next: string[] = []) {
+  try {
+    statSync(filepath);
+    if (next.length !== 0) {
+      mkdirSync(next.pop() as string);
+      ensure(filepath, next);
+    }
+  } catch {
+    const needToCreate = dirname(filepath);
+    ensure(needToCreate, next.concat(filepath));
+  }
+}
+
+/**
+ * 根据文件路径列表生成预览 html
+ * @param {string[]} files - 文件路径列表
+ */
 function render(files: string[]) {
   return React.createElement(
     "ul",
@@ -253,8 +314,6 @@ function render(files: string[]) {
       className: "anticons-list",
     },
     files.map((filepath) => {
-      // console.log(filepath);
-      const cwd = process.cwd();
       const Icon = require(resolve(cwd, filepath)).default;
       return React.createElement(
         "li",
@@ -281,8 +340,11 @@ function render(files: string[]) {
     })
   );
 }
+/**
+ * 根据文件路径中的主题分类
+ * @param {string[]} files - 文件路径列表
+ */
 function sortByTheme(files: string[]) {
-  const themes = ["filled", "outlined", "twotone"];
   return themes.map((theme) => {
     return {
       theme,
@@ -295,8 +357,24 @@ function sortByTheme(files: string[]) {
     };
   });
 }
-export function generatePreview({ from, to }: { from: string; to: string }) {
-  const files = globby.sync([`${from}/*.js`, `!${from}/index.js`]);
+
+/**
+ * 生成预览 html 文件，只有单个文件
+ * 该方法必须在 icons 被打包后调用，因为它不支持编译 ts 文件和 react 语法等
+ * @param {string} icons - 打包得到的 icons 目录
+ * @param {string} output - 输出路径
+ */
+export function generatePreviewPage({ icons, output, name }: { icons: string; output: string; name: string }) {
+  const files = globby.sync([`${icons}/*.js`, `!${icons}/index.js`]);
+
+  let filename = name || 'index.html';
+  let outputPath = output;
+  const { dir, ext, name: parsedName } = parse(output);
+  if (ext !== '') {
+    filename = parsedName;
+    outputPath = dir;
+  }
+  // @todo 检查是否是正确的 icons 路径，看里面的文件命名是不是 outlined 或者 filled
 
   const themes = sortByTheme(files);
   const element = React.createElement(
@@ -311,10 +389,61 @@ export function generatePreview({ from, to }: { from: string; to: string }) {
   );
   const result = ReactDOMServer.renderToString(element);
 
-  writeFileSync(
-    resolve(process.cwd(), to, "preview.html"),
+  const f = resolve(cwd, outputPath, filename);
+  ensure(dirname(f));
+  writeFileSync(f,
     template(previewTemplate)({
       content: result,
     })
   );
+}
+
+function validateSvgDir(svgDir: string) {
+  try {
+    statSync(svgDir);
+    // 只要有 themes 其中一个即可
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+/**
+ * 将项目内的某些文件拷贝到指定目录
+ * @param {string} patterns - 需要拷贝的文件，相对 lib/es 目录，不是 src 目录需要注意下
+ * @param {string} to - 拷贝到的目录，相对于执行该命令的目录
+ */
+export function copyFiles(patterns: string, to: string) {
+  vfs.src(`${r()}/${patterns}`).pipe(vfs.dest(to));
+}
+
+function updateCachedFile(filepath: string, nextContent: { [key: string]: any }) {
+  const prevContent = readCachedFile(filepath);
+  ensure(dirname(filepath));
+  writeFileSync(filepath, JSON.stringify({
+    ...prevContent,
+    ...nextContent,
+  }))
+}
+function readCachedFile(filepath: string) {
+  try {
+    statSync(filepath);
+    return JSON.parse(readFileSync(filepath, 'utf-8'));
+  } catch (err) {
+    return {};
+  }
+}
+
+const DIR_JSON = r(CACHE_DIR, 'dir.json');
+function updateCachedDir(nextDir: { svg?: string; output?: string } = {}) {
+  updateCachedFile(DIR_JSON, nextDir)
+}
+const SVG_NAME_JSON = r(CACHE_DIR, 'svg.json');
+function updateCachedSvg(nextSvg: { original?: any; asn?: any } = {}) {
+  updateCachedFile(SVG_NAME_JSON, nextSvg)
+}
+
+export function getOutput() {
+  const { output } = readCachedFile(DIR_JSON);
+  return output;
 }
