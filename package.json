@@ -28,7 +28,8 @@
     "postbuild": "node scripts/copy.js",
     "prepublishOnly": "npm run build",
     "docs": "yarn dumi dev",
-    "build:docs": "yarn dumi build"
+    "build:docs": "yarn dumi build",
+    "deploy": "git subtree push --prefix=docs-dist origin gh-pages"
   },
   "devDependencies": {
     "@types/lodash.camelcase": "^4.3.6",
