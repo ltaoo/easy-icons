@@ -15,6 +15,10 @@ const {
  * 清除生成的文件
  */
 function clean() {
+    const output = getOutput();
+    if (output === undefined) {
+        return;
+    }
     del([`${output}/**/*`], {
         force: true,
     });

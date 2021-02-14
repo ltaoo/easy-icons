@@ -12,96 +12,79 @@
 下面详细说明各种使用方式
 
 ## 1、将 svg 作为单个 npm 包发布后使用
-首先新建一个项目文件夹
+提供了模板供快捷使用。
 
 ```bash
-mkdir icons-example
-cd icons-example
-npm init -y
+npx create e-icons ./my-icons
 ```
-> `icons-example` 会作为包名使用
-
-安装依赖
 
 ```bash
-yarn add e-icons -D
+cd my-icons
+yarn
 ```
 
-将自己的 `svg` 图标放入项目中。目录结构必须符合
+将自己的 `svg` 图标按主题放入项目 `svg` 下的主题文件夹中。
 
 ```
-- src
 - svg
-    - filled
-    - outlined
-    - twotone
-package.json
-```
-> `svg` 与 `src` 同级
-
-`svg` 图标按照类型放入这三个文件夹中。
-
-然后在项目根目录下，使用命令 `yarn ei create asn src/svg --output src`，将在 `src` 文件夹下新增 `asn` 和 `index.ts` 等文件。
-再使用 `yarn ei icons --output src`，将在 `src` 目录下新增 `components`、`icons` 等目录。
-至此，项目就完成了，接下来需要将这个项目打包后发布，才能使用。
-
-```bash
-yarn add @types/react @types/classnames father-build -D
-yarn add @ant-design/colors
-yarn add react classnames --peer
-```
-> `yarn add react classnames --peer` 需要在最后执行
-
-增加 `.fatherrc.ts` 配置
-
-```typescript
-export default {
-  cjs: {
-    type: "babel",
-  },
-  esm: {
-    type: "babel",
-  },
-};
+  - filled 填充类型的图标
+  - outlined 线性图标
+  - twotone 颜色图标
 ```
 
-然后打包，打包完成发布即可使用。
-```bash
-yarn father-build
-```
+执行命令 `yarn init && npm publish` 即可发布到 `npm` 上。
 
-```bash
-npm publish
-```
-
-> 可以在发布前本地 `link` 调试，确认可以使用后再发包。
-
-## 2、将 svg 作为多个 npm 包发布后使用
+## 2、将 svg 作为多个 npm 包发布后使用（todo）
 在不同包中执行不同命令。
 
 ## 3、仅在项目中使用
 > 必须是 `ts` 项目，否则还是建议发成 `npm` 包后使用。
 
-和之前步骤类似，找一个目录存放 `svg/outlined` 等文件夹，以如下目录结构为例
+和之前步骤类似，找一个目录存放 `svg`、`outlined` 等文件夹，以如下目录结构为例
+
+```bash
+- package.json
+- src
+  - svg
+    - filled
+    - outlined
+  - icons
+```
 
 依次执行
 
 ```bash
-
+yarn ei gen all --svg src/svg --output src/icons
 ```
 
-然后直接引用即可。
+然后在项目中引用即可。
 
-## 4、在 umi 项目中使用
+```typescript
+// src/App.tsx
+const { SmileOutlined } from '@/icons';
+```
+
+## 4、在 umi 项目中使用（todo）
 可使用插件
 
-## Nodejs API
+## todo
 
+[] 支持 vue 项目
+[] 支持在非 ts 项目中直接使用
+[] 优化 bin 目录下代码
+[] 实现 umi 插件供在 umi 项目中快捷使用
+
+## Nodejs API
+见 `example/api/index.js`。
 
 ## faq
 
 ### 新增一个 icon 要怎么做
-将 `svg` 文件放置在对应的文件夹下后，执行 `yarn ei asn src/svg --output src && yarn ei icons --output src` 后再打包即可。
-其实和初始化的流程是完全一致的。
+目前没有增量新增或指定新增 `icon` 功能，每次都是全量处理，所以和初始化流程相同
+
+```bash
+yarn gen all --svg <svg-dir> --output <output-dir>
+```
+
 ### 如何实现按需加载
 使用 `babel-plugin-import` 插件，并配置
