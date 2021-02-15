@@ -1,13 +1,18 @@
 {
-  "name": "e-icons",
+  "name": "easy-icons",
   "version": "0.1.0",
   "description": "Use svg icon like @ant-design/icons.",
   "keywords": [
+    "svg",
     "icons",
     "ant-design/icons"
   ],
   "author": "litao<litaowork@aliyun.com>",
-  "homepage": "",
+  "homepage": "https://ltaoo.github.io/e-icons",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ltaoo/e-icons.git"
+  },
   "license": "ISC",
   "bin": {
     "ei": "./bin/index.js"
