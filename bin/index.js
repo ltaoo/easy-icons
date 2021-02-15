@@ -13,6 +13,7 @@ const {
 } = require("./commands");
 
 const cwd = process.cwd();
+// console.log('[BIN]', cwd);
 
 yargs(hideBin(process.argv))
   .command('create [filepath]', 'create project use template', (yargs) => {
@@ -44,6 +45,7 @@ yargs(hideBin(process.argv))
     async (argv) => {
       if (argv.verbose) console.info(`start generate asn files.`);
       const { type, svg, output } = argv;
+      console.log('[BIN]Command create', type, svg, output);
       if (type === 'asn') {
         generateAsn({ svg, output });
         return;

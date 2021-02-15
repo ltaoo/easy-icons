@@ -12,24 +12,31 @@ import globby from "globby";
 
 import { getIdentifier, getNameAndThemeFromPath } from "./utils";
 import { t } from "./plugins/svg2Definition";
-import { generalConfig } from "./plugins/svgo/presets";
+import { generalConfig, remainFillConfig } from "./plugins/svgo/presets";
 import {
   assignAttrsAtTag,
   adjustViewBox,
+  setDefaultColorAtPathTag,
 } from "./plugins/svg2Definition/transforms";
+import { twotoneStringify } from "./plugins/svg2Definition/stringify";
 import { ThemeType, ThemeTypeUpperCase } from "./types";
-import { doesNotMatch } from "assert";
 
 const cwd = process.cwd();
 const THIS_ROOT_DIR = resolve(__dirname);
-const TEMPLATES_DIR = resolve(THIS_ROOT_DIR, "../templates");
+const TEMPLATES_DIR = resolve(THIS_ROOT_DIR, "./templates");
 function r(...paths: string[]) {
   return resolve(THIS_ROOT_DIR, ...paths);
 }
 const asnTemplate = readFileSync(resolve(TEMPLATES_DIR, "asn.ts.ejs"), "utf8");
-const iconTemplate = readFileSync(resolve(TEMPLATES_DIR, 'icon.tsx.ejs'), 'utf-8');
-const previewTemplate = readFileSync(resolve(TEMPLATES_DIR, "index.html.ejs"), "utf-8");
-const CACHE_DIR = '.cache';
+const iconTemplate = readFileSync(
+  resolve(TEMPLATES_DIR, "icon.tsx.ejs"),
+  "utf-8"
+);
+const previewTemplate = readFileSync(
+  resolve(TEMPLATES_DIR, "index.html.ejs"),
+  "utf-8"
+);
+const CACHE_DIR = ".cache";
 
 const themes = ["filled", "outlined", "twotone"];
 
@@ -40,86 +47,116 @@ const themes = ["filled", "outlined", "twotone"];
  * @param {string} theme - svg 主题
  */
 export async function svg2asn(svg: string, name: string, theme: ThemeType) {
-  const optimizer = new SVGO(generalConfig);
+  const optimizer = theme === 'twotone' ? new SVGO(remainFillConfig) : new SVGO(generalConfig);
   const { data } = await optimizer.optimize(svg);
-  const asn = t(data, {
+  if (theme === "twotone") {
+    return t(data, {
+      name: name,
+      theme: theme,
+      extraNodeTransformFactories: [
+        assignAttrsAtTag("svg", { focusable: "false" }),
+        adjustViewBox,
+        setDefaultColorAtPathTag("#333"),
+      ],
+      stringify: twotoneStringify,
+    });
+  }
+  return t(data, {
     name: name,
     theme: theme,
     extraNodeTransformFactories: [
       assignAttrsAtTag("svg", { focusable: "false" }),
       adjustViewBox,
     ],
-    // @todo twotone 好像 stringify 不同
     stringify: JSON.stringify,
   });
-  return asn;
 }
 /**
  * 生成对应 asn 文件
  * @param {string} asn - svg2asn 转换得到的 asn
  * @param {boolean} [typescript=true] - 是否生成 ts 文件
  */
-export function createAsnFile(asn: string, typescript: boolean = true) {
-  const { name, theme } = JSON.parse(asn);
-  const mapToInterpolate = ({
-    name,
-    content,
-  }: {
-    name: string;
-    content: string;
-  }) => {
-    const identifier = getIdentifier({
-      name: name,
-      themeSuffix: theme
-        ? (upperFirst(theme) as ThemeTypeUpperCase)
-        : undefined,
-    });
-    return {
-      identifier,
-      content: content,
-      typescript,
+export function createAsnFile(
+  asn: string,
+  { name, theme }: { name: string; theme: ThemeType },
+  typescript: boolean = true
+) {
+  try {
+    // console.log("[CORE]createAsnFile", asn, typeof asn);
+    const mapToInterpolate = ({
+      name,
+      content,
+    }: {
+      name: string;
+      content: string;
+    }) => {
+      const identifier = getIdentifier({
+        name: name,
+        themeSuffix: theme
+          ? (upperFirst(theme) as ThemeTypeUpperCase)
+          : undefined,
+      });
+      return {
+        identifier,
+        content: content,
+        typescript,
+      };
     };
-  };
-  const executor = template(asnTemplate);
-  return executor(mapToInterpolate({ name: name, content: asn }));
+    const render = template(asnTemplate);
+    return render(mapToInterpolate({ name: name, content: asn }));
+  } catch (err) {
+    // ...
+    throw Promise.reject(err);
+  }
 }
-const transformToAsn = () => through2.obj(async (file, _, cb) => {
-  if (file.isNull()) {
+const transformToAsn = () =>
+  through2.obj(async (file, _, cb) => {
+    if (file.isNull()) {
+      return cb(null, file);
+    }
+    const filepath = file.path;
+    const { name, theme } = getNameAndThemeFromPath(filepath);
+    const content = file.contents.toString();
+    const nextContent = await svg2asn(content, name, theme);
+    file.contents = Buffer.from(nextContent);
+    file.meta = {
+      name: name,
+      theme: theme,
+    };
     return cb(null, file);
-  }
-  const filepath = file.path;
-  const { name, theme } = getNameAndThemeFromPath(filepath);
-  const content = file.contents.toString();
-  const nextContent = await svg2asn(content, name, theme);
-  file.contents = Buffer.from(nextContent);
-  file.meta = {
-    name: name,
-    theme: theme,
-  };
-  return cb(null, file);
-});
-const transformToIcon = ({ typescript }: { typescript?: boolean } = {}) => through2.obj((file, _, cb) => {
-  if (file.isNull()) {
+  });
+const transformToIcon = ({ typescript }: { typescript?: boolean } = {}) =>
+  through2.obj((file, _, cb) => {
+    if (file.isNull()) {
+      return cb(null, file);
+    }
+    var content = file.contents.toString();
+    try {
+      const nextContent = createAsnFile(
+        content,
+        file.meta,
+        typescript
+      ) as string;
+      file.contents = Buffer.from(nextContent);
+      return cb(null, file);
+    } catch (err) {
+      return cb(err, null);
+    }
+  });
+const rename = ({ typescript }: { typescript?: boolean } = {}) =>
+  through2.obj((file, _, cb) => {
+    if (file.isNull()) {
+      return cb(null, file);
+    }
+    const {
+      path,
+      meta: { name, theme },
+    } = file;
+    file.path = path.replace(`/${theme}`, "");
+    file.basename = getIdentifier({ name: name, themeSuffix: theme });
+    file.extname = ".ts";
     return cb(null, file);
-  }
-  var content = file.contents.toString();
-  var nextContent = createAsnFile(content, typescript) as string;
-  file.contents = Buffer.from(nextContent);
-  return cb(null, file);
-});
-const rename = ({ typescript }: { typescript?: boolean } = {}) => through2.obj((file, _, cb) => {
-  if (file.isNull()) {
-    return cb(null, file);
-  }
-  const {
-    path,
-    meta: { name, theme },
-  } = file;
-  file.path = path.replace(`/${theme}`, "");
-  file.basename = getIdentifier({ name: name, themeSuffix: theme });
-  file.extname = ".ts";
-  return cb(null, file);
-});
+  });
 
 const SVG_FILES: any[] = [];
 /**
@@ -138,7 +175,7 @@ export function generateAsnFiles({
 }: {
   svg: string;
   output: string;
-  typescript?: boolean,
+  typescript?: boolean;
   before?: (files: any[]) => void;
   done?: () => void;
 }) {
@@ -150,7 +187,7 @@ export function generateAsnFiles({
       svg,
       output,
     });
-    const pattern = resolve(svg, '**', '*.svg');
+    const pattern = resolve(svg, "**", "*.svg");
     // before process svg files
     const svgFiles = globby.sync(pattern);
     if (before) {
@@ -165,9 +202,9 @@ export function generateAsnFiles({
       .pipe(transformToAsn())
       .pipe(transformToIcon({ typescript }))
       .pipe(rename({ typescript }))
-      .pipe(vfs.dest(resolve(output, 'asn')));
+      .pipe(vfs.dest(resolve(output, "asn")));
     // check has created asn file
-    const asnPattern = resolve(output, 'asn', '**', '*.ts');
+    const asnPattern = resolve(output, "asn", "**", "*.ts");
     const timer = setInterval(() => {
       const asnFiles = globby.sync(asnPattern);
       // console.log('[]generateAsnFiles check has done', svgFiles.length, asnFiles.length);
@@ -196,24 +233,18 @@ function checkHasAsnFiles() {
   } catch (err) {
     return false;
   }
-
-
 }
 /**
  * 创建 icon 组件文件
  */
-export function generateIconFiles({
-  iconsPath,
-}: {
-  iconsPath: string;
-}) {
+export function generateIconFiles({ iconsPath }: { iconsPath: string }) {
   return new Promise((res, reject) => {
     if (checkHasAsnFiles() === false) {
-      return reject(new Error('请先生成 asn 文件'));
+      return reject(new Error("请先生成 asn 文件"));
     }
 
     const { output } = readCachedFile(DIR_JSON);
-    const pattern = resolve(output, 'asn', '**', '*.ts');
+    const pattern = resolve(output, "asn", "**", "*.ts");
     vfs
       .src(pattern)
       .pipe(
@@ -233,7 +264,7 @@ export function generateIconFiles({
           cb(null, file);
         })
       )
-      .pipe(vfs.dest(resolve(output, 'icons')));
+      .pipe(vfs.dest(resolve(output, "icons")));
     res(undefined);
   });
 }
@@ -265,10 +296,10 @@ export function generateEntry(
 ) {
   return new Promise((res, reject) => {
     if (checkHasAsnFiles() === false) {
-      return reject(new Error('请先生成 asn 文件'));
+      return reject(new Error("请先生成 asn 文件"));
     }
     const { output } = readCachedFile(DIR_JSON);
-    const files = filepaths || globby.sync(resolve(output, 'asn', '*.ts'));
+    const files = filepaths || globby.sync(resolve(output, "asn", "*.ts"));
     // console.log('[]generateEntry - collected files', output, files);
     const content =
       forceContent ||
@@ -282,7 +313,7 @@ export function generateEntry(
         })
         .join("\n");
 
-    const name = filename || resolve(output, 'index.ts');
+    const name = filename || resolve(output, "index.ts");
     ensure(dirname(name));
     writeFileSync(name, content);
     res(name);
@@ -364,13 +395,21 @@ function sortByTheme(files: string[]) {
  * @param {string} icons - 打包得到的 icons 目录
  * @param {string} output - 输出路径
  */
-export function generatePreviewPage({ icons, output, name }: { icons: string; output: string; name: string }) {
+export function generatePreviewPage({
+  icons,
+  output,
+  name,
+}: {
+  icons: string;
+  output: string;
+  name: string;
+}) {
   const files = globby.sync([`${icons}/*.js`, `!${icons}/index.js`]);
 
-  let filename = name || 'index.html';
+  let filename = name || "index.html";
   let outputPath = output;
   const { dir, ext, name: parsedName } = parse(output);
-  if (ext !== '') {
+  if (ext !== "") {
     filename = parsedName;
     outputPath = dir;
   }
@@ -391,7 +430,8 @@ export function generatePreviewPage({ icons, output, name }: { icons: string; ou
 
   const f = resolve(cwd, outputPath, filename);
   ensure(dirname(f));
-  writeFileSync(f,
+  writeFileSync(
+    f,
     template(previewTemplate)({
       content: result,
     })
@@ -417,30 +457,36 @@ export function copyFiles(patterns: string, to: string) {
   vfs.src(`${r()}/${patterns}`).pipe(vfs.dest(to));
 }
 
-function updateCachedFile(filepath: string, nextContent: { [key: string]: any }) {
+function updateCachedFile(
+  filepath: string,
+  nextContent: { [key: string]: any }
+) {
   const prevContent = readCachedFile(filepath);
   ensure(dirname(filepath));
-  writeFileSync(filepath, JSON.stringify({
-    ...prevContent,
-    ...nextContent,
-  }))
+  writeFileSync(
+    filepath,
+    JSON.stringify({
+      ...prevContent,
+      ...nextContent,
+    })
+  );
 }
 function readCachedFile(filepath: string) {
   try {
     statSync(filepath);
-    return JSON.parse(readFileSync(filepath, 'utf-8'));
+    return JSON.parse(readFileSync(filepath, "utf-8"));
   } catch (err) {
     return {};
   }
 }
 
-const DIR_JSON = r(CACHE_DIR, 'dir.json');
+const DIR_JSON = r(CACHE_DIR, "dir.json");
 function updateCachedDir(nextDir: { svg?: string; output?: string } = {}) {
-  updateCachedFile(DIR_JSON, nextDir)
+  updateCachedFile(DIR_JSON, nextDir);
 }
-const SVG_NAME_JSON = r(CACHE_DIR, 'svg.json');
+const SVG_NAME_JSON = r(CACHE_DIR, "svg.json");
 function updateCachedSvg(nextSvg: { original?: any; asn?: any } = {}) {
-  updateCachedFile(SVG_NAME_JSON, nextSvg)
+  updateCachedFile(SVG_NAME_JSON, nextSvg);
 }
 
 export function getOutput() {

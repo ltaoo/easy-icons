@@ -28,6 +28,7 @@ function clean() {
 module.exports.clean = clean;
 
 async function generateAsn({ svg, output }) {
+    // console.log('[BIN]generateAsn - start', svg, output);
     await generateAsnFiles({
         svg,
         output,
