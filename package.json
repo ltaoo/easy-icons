@@ -16,8 +16,7 @@
   "typings": "lib/index.d.ts",
   "files": [
     "lib",
-    "bin",
-    "templates"
+    "bin"
   ],
   "scripts": {
     "type-check": "tsc --noEmit",
