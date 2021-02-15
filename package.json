@@ -29,6 +29,7 @@
     "prepublishOnly": "npm run build",
     "docs": "yarn dumi dev",
     "build:docs": "yarn dumi build",
+    "predeploy": "yarn build:docs",
     "deploy": "git subtree push --prefix=docs-dist origin gh-pages"
   },
   "devDependencies": {
