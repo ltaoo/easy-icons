@@ -11,6 +11,7 @@ const {
     generateEntry,
     getOutput,
   } = require("../lib");
+const { statSync } = require('fs');
 /**
  * 清除生成的文件
  */
@@ -57,6 +58,12 @@ async function generateIcons() {
             path: `./${name}`,
         };
     }, { filename: path.resolve(output, 'icons', "./index.ts") });
+    try {
+        statSync(path.resolve(output, 'components'));
+    } catch (err) {
+        // ...
+        copyComponents();
+    }
     console.log(chalk.green('success'), '生成 icon 文件成功');
     generateEntry(
         () => { },

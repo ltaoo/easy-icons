@@ -15,7 +15,8 @@
 提供了模板供快捷使用。
 
 ```bash
-npx create e-icons ./my-icons
+git clone https://github.com/ltaoo/e-icons-template.git ./my-icons
+# npx create e-icons ./my-icons
 ```
 
 ```bash
@@ -32,7 +33,7 @@ yarn
   - twotone 颜色图标
 ```
 
-执行命令 `yarn init && npm publish` 即可发布到 `npm` 上。
+执行命令 `yarn peer && npm publish` 即可发布到 `npm` 上。之后有新增 `svg icon` 仅需 `npm publish`。
 
 ## 2、将 svg 作为多个 npm 包发布后使用（todo）
 在不同包中执行不同命令。
@@ -73,6 +74,7 @@ const { SmileOutlined } from '@/icons';
 [] 支持在非 ts 项目中直接使用
 [] 优化 bin 目录下代码
 [] 实现 umi 插件供在 umi 项目中快捷使用
+[] verbose 参数打印调试信息
 
 ## Nodejs API
 见 `example/api/index.js`。
