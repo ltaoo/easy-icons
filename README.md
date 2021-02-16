@@ -12,11 +12,8 @@
 下面详细说明各种使用方式
 
 ## 1、将 svg 作为单个 npm 包发布后使用
-提供了模板供快捷使用。
-
 ```bash
-git clone https://github.com/ltaoo/e-icons-template.git ./my-icons
-# npx create e-icons ./my-icons
+yarn create easy-icons ./my-icons
 ```
 
 ```bash
@@ -33,7 +30,7 @@ yarn
   - twotone 颜色图标
 ```
 
-执行命令 `yarn peer && npm publish` 即可发布到 `npm` 上。之后有新增 `svg icon` 仅需 `npm publish`。
+执行命令 `npm publish` 即可发布到 `npm` 上。之后有新增 `svg icon` 也是直接 `npm publish` 发布即可。
 
 ## 2、将 svg 作为多个 npm 包发布后使用（todo）
 在不同包中执行不同命令。
