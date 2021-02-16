@@ -1,6 +1,8 @@
 #!/usr/bin/env node
+const path = require('path');
 const cp = require('child_process');
 
+const open = require('open');
 const yargs = require("yargs/yargs");
 const { hideBin } = require("yargs/helpers");
 
@@ -45,7 +47,7 @@ yargs(hideBin(process.argv))
     async (argv) => {
       if (argv.verbose) console.info(`start generate asn files.`);
       const { type, svg, output } = argv;
-      console.log('[BIN]Command create', type, svg, output);
+      // console.log('[BIN]Command create', type, svg, output);
       if (type === 'asn') {
         generateAsn({ svg, output });
         return;
@@ -111,7 +113,9 @@ yargs(hideBin(process.argv))
     (argv) => {
       if (argv.verbose) console.info(`clean generated files.`);
       const { icons, output } = argv;
-      generatePreview({ icons, output });
+      const page = generatePreview({ icons, output });
+
+      open(`file://${path.resolve(page)}`);
     }
   )
   .command(

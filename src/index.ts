@@ -436,6 +436,7 @@ export function generatePreviewPage({
       content: result,
     })
   );
+  return f;
 }
 
 function validateSvgDir(svgDir: string) {

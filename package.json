@@ -1,6 +1,6 @@
 {
   "name": "easy-icons",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Use svg icon like @ant-design/icons.",
   "keywords": [
     "svg",
@@ -34,7 +34,7 @@
     "docs": "yarn dumi dev",
     "build:docs": "yarn dumi build",
     "predeploy": "yarn build:docs",
-    "deploy": "git subtree push --prefix=docs-dist origin gh-pages"
+    "deploy": "node scripts/deploy.js"
   },
   "devDependencies": {
     "@types/lodash.camelcase": "^4.3.6",
@@ -51,6 +51,7 @@
     "@umijs/fabric": "^2.2.2",
     "cross-env": "^7.0.0",
     "dumi": "^1.1.4",
+    "gh-pages": "^3.1.0",
     "ts-node": "^8.6.2",
     "typescript": "^3.8.3"
   },
@@ -62,6 +63,7 @@
     "lodash.camelcase": "^4.3.0",
     "lodash.template": "^4.5.0",
     "lodash.upperfirst": "^4.3.1",
+    "open": "^7.4.1",
     "ramda": "^0.27.0",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",

@@ -90,6 +90,6 @@ function addIcons() {
  * 生成预览文件
  */
 function generatePreview(opts) {
-    generatePreviewPage(opts);
+    return generatePreviewPage(opts);
 }
 module.exports.generatePreview = generatePreview;
