@@ -14,7 +14,7 @@ const {
   copyComponents,
 } = require("./commands");
 
-const cwd = process.cwd();
+// const cwd = process.cwd();
 // console.log('[BIN]', cwd);
 
 yargs(hideBin(process.argv))
@@ -43,18 +43,25 @@ yargs(hideBin(process.argv))
     async (argv) => {
       if (argv.verbose) console.info(`start generate asn files.`);
       const { type, svg, output, asnDir } = argv;
-      // console.log('[BIN]Command create', type, svg, output);
       if (type === "asn") {
         generateAsn({ svg, output });
         return;
       }
+      const params = {
+        asnPath: asnDir,
+        output,
+        iconsPath: `${asnDir}/lib`,
+      };
+      if (params.asnPath === undefined) {
+        params.iconsPath = "../asn";
+      }
       if (type === "icons") {
-        generateIcons({ asnDir });
+        generateIcons(params);
         return;
       }
       if (type === "all") {
         await generateAsn({ svg, output });
-        generateIcons({ asnDir });
+        generateIcons(params);
       }
     }
   )
@@ -85,11 +92,14 @@ yargs(hideBin(process.argv))
         describe: "framework want to use.",
         default: "react",
       });
+      yargs.option("output", {
+        describe: "output dir.",
+      });
     },
     (argv) => {
       if (argv.verbose) console.info(`generate react icon components.`);
-      const { type } = argv;
-      copyComponents(type);
+      const { type, output } = argv;
+      copyComponents(output);
     }
   )
   // ------- preview command start
@@ -117,10 +127,15 @@ yargs(hideBin(process.argv))
   .command(
     "clean",
     "clean generated files",
-    (yargs) => {},
+    (yargs) => {
+      yargs.positional("dir", {
+        describe: "dir need to clean.",
+      });
+    },
     (argv) => {
       if (argv.verbose) console.info(`clean generated files.`);
-      clean();
+      const { dir } = argv;
+      clean(dir);
     }
   )
   .option("verbose", {

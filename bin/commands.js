@@ -10,18 +10,16 @@ const {
   generatePreviewPage,
   copyFiles,
   generateEntry,
-  getOutput,
 } = require("../lib");
 const { statSync } = require("fs");
 /**
  * 清除生成的文件
  */
-function clean() {
-  const output = getOutput();
+function clean(paths) {
   if (output === undefined) {
     return;
   }
-  del([`${output}/**/*`], {
+  del(paths, {
     force: true,
   });
   console.log("clean success~");
@@ -68,11 +66,12 @@ async function generateIcons({ iconsPath, asnPath, output }) {
     output,
     asnPath,
   });
+  copyFiles("types/**.ts", output);
   try {
     statSync(path.resolve(output, "components"));
   } catch (err) {
     // ...
-    copyComponents();
+    copyComponents(output);
   }
   console.log(chalk.green("success"), "生成 icon 文件成功");
   fs.writeFileSync(
@@ -82,8 +81,7 @@ async function generateIcons({ iconsPath, asnPath, output }) {
 }
 module.exports.generateIcons = generateIcons;
 
-function copyComponents() {
-  const output = getOutput();
+function copyComponents(output) {
   copyFiles("components/**/*", path.resolve(output, "components"));
   console.log(chalk.green("success"), "拷贝 components 文件成功");
 }
