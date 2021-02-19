@@ -50,7 +50,7 @@ yargs(hideBin(process.argv))
       const params = {
         asnPath: asnDir,
         output,
-        iconsPath: `${asnDir}/lib`,
+        iconsPath: `${asnDir}/lib/asn`,
       };
       if (params.asnPath === undefined) {
         params.iconsPath = "../asn";

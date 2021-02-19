@@ -72,6 +72,7 @@ const { SmileOutlined } from '@/icons';
 [] 优化 bin 目录下代码
 [] 实现 umi 插件供在 umi 项目中快捷使用
 [] verbose 参数打印调试信息
+[] 只有 asn 项目时也能预览
 
 ## Nodejs API
 见 `example/api/index.js`。
