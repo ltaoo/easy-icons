@@ -30,12 +30,10 @@ yargs(hideBin(process.argv))
       yargs.option("svg", {
         alias: "s",
         describe: "svg dir",
-        required: true,
       });
       yargs.option("output", {
         alias: "o",
         describe: "output dir",
-        required: true,
       });
       yargs.option("asn-dir", {
         describe: "required asn module when generate icon",

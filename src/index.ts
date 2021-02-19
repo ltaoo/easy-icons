@@ -239,10 +239,6 @@ function checkHasAsnFiles() {
  */
 export function generateIconFiles({ iconsPath }: { iconsPath: string }) {
   return new Promise((res, reject) => {
-    if (checkHasAsnFiles() === false) {
-      return reject(new Error("请先生成 asn 文件"));
-    }
-
     const { output } = readCachedFile(DIR_JSON);
     const pattern = resolve(output, "asn", "**", "*.ts");
     vfs
@@ -295,9 +291,6 @@ export function generateEntry(
   } = {}
 ) {
   return new Promise((res, reject) => {
-    if (checkHasAsnFiles() === false) {
-      return reject(new Error("请先生成 asn 文件"));
-    }
     const { output } = readCachedFile(DIR_JSON);
     const files = filepaths || globby.sync(resolve(output, "asn", "*.ts"));
     // console.log('[]generateEntry - collected files', output, files);
