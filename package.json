@@ -1,6 +1,6 @@
 {
   "name": "easy-icons",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Use svg icon like @ant-design/icons.",
   "keywords": [
     "svg",
@@ -56,7 +56,6 @@
     "typescript": "^3.8.3"
   },
   "dependencies": {
-    "@cf2e/icons-svg": "^0.1.2",
     "@rgrove/parse-xml": "^2.0.2",
     "chalk": "^4.1.0",
     "del": "^5.1.0",
