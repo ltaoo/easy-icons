@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, statSync, writeFileSync } from "fs";
+import { fstat, mkdirSync, readFileSync, statSync, writeFileSync } from "fs";
 import { resolve, parse, dirname } from "path";
 
 import React from "react";
@@ -47,7 +47,8 @@ const themes = ["filled", "outlined", "twotone"];
  * @param {string} theme - svg 主题
  */
 export async function svg2asn(svg: string, name: string, theme: ThemeType) {
-  const optimizer = theme === 'twotone' ? new SVGO(remainFillConfig) : new SVGO(generalConfig);
+  const optimizer =
+    theme === "twotone" ? new SVGO(remainFillConfig) : new SVGO(generalConfig);
   const { data } = await optimizer.optimize(svg);
   if (theme === "twotone") {
     return t(data, {
@@ -234,35 +235,137 @@ function checkHasAsnFiles() {
     return false;
   }
 }
+
+/**
+ * 判断一个路径是否是 npm 包名
+ * @param filepath
+ */
+function checkIsNpmPackage(filepath: string) {
+  const firstChar = filepath.charAt(0);
+  const secondChar = filepath.charAt(1);
+  if ([".", "/"].includes(firstChar)) {
+    return false;
+  }
+  if (["@"].includes(firstChar) && ["/"].includes(secondChar)) {
+    return false;
+  }
+  if (filepath.includes("/")) {
+    return false;
+  }
+  return true;
+}
+
+function getAllAsn(asnPath: string): Promise<string[]> {
+  return new Promise((res) => {
+    if (checkIsNpmPackage(asnPath)) {
+      import(asnPath).then((module) => {
+        // console.log(module);
+        const allAsn: string[] = Object.keys(module);
+        res(allAsn);
+      });
+      return;
+    }
+    const allAsn: string[] = globby.sync([resolve(asnPath, "**.ts")]);
+    res(allAsn.map((asnFilepath) => parse(asnFilepath).name));
+  });
+}
 /**
  * 创建 icon 组件文件
  */
-export function generateIconFiles({ iconsPath }: { iconsPath: string }) {
+export function generateIconFiles({
+  iconsPath, // iconsPath 就是 asnPath，两个其实是同一个东西
+  output,
+  asnPath,
+}: {
+  iconsPath: string;
+  asnPath?: string;
+  output?: string;
+}) {
   return new Promise((res, reject) => {
-    const { output } = readCachedFile(DIR_JSON);
-    const pattern = resolve(output, "asn", "**", "*.ts");
-    vfs
-      .src(pattern)
-      .pipe(
-        through2.obj((file, _, cb) => {
-          if (file.isNull()) {
-            return cb(null, file);
-          }
-          const { path } = file;
-          const { name } = parse(path);
-          const render = template(iconTemplate);
-          const nextContent = render({
-            svgIdentifier: name,
-            iconsPath,
-          });
-          file.contents = Buffer.from(nextContent);
-          file.extname = ".tsx";
-          cb(null, file);
-        })
-      )
-      .pipe(vfs.dest(resolve(output, "icons")));
-    res(undefined);
+    const outputDir = output || readCachedFile(DIR_JSON).output;
+    const asnDir = asnPath || resolve(outputDir, "asn");
+    let allAsn: string[] = [];
+    if (!checkIsNpmPackage(asnDir)) {
+      const pattern = resolve(asnDir, "**", "*.ts");
+      vfs
+        .src(pattern)
+        .pipe(
+          through2.obj((file, _, cb) => {
+            if (file.isNull()) {
+              return cb(null, file);
+            }
+            const { path } = file;
+            const { name } = parse(path);
+            allAsn.push(name);
+            const render = template(iconTemplate);
+            const nextContent = render({
+              svgIdentifier: name,
+              iconsPath,
+            });
+            file.contents = Buffer.from(nextContent);
+            file.extname = ".tsx";
+            cb(null, file);
+          })
+        )
+        .pipe(vfs.dest(resolve(outputDir, "icons")));
+      res(allAsn);
+    }
+    // monorepo 的场景，或者说 asn 干脆就是另一个包，和 icons 仅仅是依赖关系，这时需要 require asn
+    import(asnDir).then((module) => {
+      // console.log(module);
+      allAsn = Object.keys(module);
+      allAsn.forEach((svgIdentifier) => {
+        const render = template(iconTemplate);
+        const nextContent = render({
+          svgIdentifier,
+          iconsPath,
+        });
+        const iconFilepath = resolve(
+          outputDir,
+          "icons",
+          `${svgIdentifier}.tsx`
+        );
+        ensure(dirname(iconFilepath));
+        writeFileSync(iconFilepath, nextContent);
+      });
+      res(allAsn);
+    });
   });
+}
+
+/**
+ * 生成 src/index.ts 文件
+ * @param param0
+ */
+export async function generateEntry({
+  output,
+  asnPath,
+  render,
+}: {
+  output: string;
+  asnPath: string;
+  render: (svgIdentifier: string) => { identifier: string; path: string };
+}) {
+  if (asnPath === undefined) {
+    return Promise.reject(new Error(`asnPath can't be undefined.`));
+  }
+  const filepath = resolve(output, "index.ts");
+  if (checkIsNpmPackage(asnPath)) {
+    return;
+  }
+  const allAsn = await getAllAsn(asnPath);
+  const renderTemplate =
+    "export { default as <%= identifier %> } from '<%= path %>';";
+  const fileContent = allAsn
+    .map((asn) => {
+      const { identifier, path } = render(asn);
+      const content = template(renderTemplate)({ identifier, path });
+      return content;
+    })
+    .join("\n");
+
+  ensure(dirname(filepath));
+  writeFileSync(filepath, fileContent);
 }
 
 /**
@@ -276,17 +379,19 @@ export function generateIconFiles({ iconsPath }: { iconsPath: string }) {
  * @param {string} opts.content - 生成的文件内容，如果传了该值，则可以不根据模板渲染，而是强制使用该值
  * @param {string} opts.templateContent - 渲染模板
  */
-export function generateEntry(
+export function generateFile(
   fn: (filepath: string) => { identifier: string; path: string },
   {
     filepaths,
     filename,
+    output,
     content: forceContent,
     template: t = "export { default as <%= identifier %> } from '<%= path %>';",
   }: {
     filepaths?: any[];
     content?: string;
     filename?: string;
+    output?: string;
     template?: string;
   } = {}
 ) {

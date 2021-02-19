@@ -1,4 +1,10 @@
-const { generateIcons } = require('./index');
+const path = require("path");
+
+const { generateIcons } = require("./index");
 
 // generateIcons();
-generateIcons({ asnDir: '@cf2e/icons-svg/lib' });
+generateIcons({
+  iconsPath: "@cf2e/icons-svg/lib",
+  output: path.resolve(__dirname, "../src"),
+  asnPath: "@cf2e/icons-svg",
+});

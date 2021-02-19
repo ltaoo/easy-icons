@@ -1,6 +1,6 @@
 const path = require("path");
 
-const chalk = require('chalk');
+const chalk = require("chalk");
 const del = require("del");
 
 const {
@@ -12,7 +12,7 @@ const {
 } = require("../../lib");
 
 // const cwd = process.cwd();
-const cwd = path.resolve(__dirname, '../');
+const cwd = path.resolve(__dirname, "../");
 const SVG_DIR = path.resolve(cwd, "svg");
 const OUTPUT_DIR = path.resolve(cwd, "src");
 const ASN_DIR = path.resolve(OUTPUT_DIR, "asn");
@@ -35,22 +35,23 @@ async function generateAsn() {
     svg: SVG_DIR,
     output: OUTPUT_DIR,
   });
-  generateEntry((filepath) => {
-    const { name } = path.parse(filepath);
-    return {
-      identifier: name,
-      path: `./asn/${name}`,
-    };
+  generateEntry({
+    render: (name) => {
+      return {
+        identifier: name,
+        path: `./asn/${name}`,
+      };
+    },
+    asnPath: ASN_DIR,
+    output: OUTPUT_DIR,
   });
   copyFiles("types/**.ts", OUTPUT_DIR);
-  console.log(chalk.green('success'), '生成 asn 文件成功');
+  console.log(chalk.green("success"), "生成 asn 文件成功");
 }
 module.exports.generateAsn = generateAsn;
 
-async function generateIcons({ asnDir } = { asnDir: '../asn' }) {
-  await generateIconFiles({
-    iconsPath: asnDir,
-  });
+async function generateIcons(params) {
+  await generateIconFiles(params);
   copyFiles("components/**/*", resolve(OUTPUT_DIR, "components"));
   generateEntry((filepath) => {
     const { name } = path.parse(filepath);
@@ -59,7 +60,7 @@ async function generateIcons({ asnDir } = { asnDir: '../asn' }) {
       path: `./icons/${name}`,
     };
   });
-  console.log(chalk.green('success'), '生成 icon 文件成功');
+  console.log(chalk.green("success"), "生成 icon 文件成功");
 }
 module.exports.generateIcons = generateIcons;
 
@@ -67,6 +68,6 @@ function generatePreview() {
   // generatePreviewPage({ icons: })
 }
 
-process.on('unhandledRejection', (err) => {
-  console.log(chalk.redBright('error'), err.message);
+process.on("unhandledRejection", (err) => {
+  console.log(chalk.redBright("error"), err.message);
 });
