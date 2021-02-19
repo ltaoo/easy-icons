@@ -249,9 +249,6 @@ function checkIsNpmPackage(filepath: string) {
   if (["@"].includes(firstChar) && ["/"].includes(secondChar)) {
     return false;
   }
-  if (filepath.includes("/")) {
-    return false;
-  }
   return true;
 }
 
@@ -266,71 +263,38 @@ function getAllAsn(asnPath: string): Promise<string[]> {
       return;
     }
     const allAsn: string[] = globby.sync([resolve(asnPath, "**.ts")]);
-    res(allAsn.map((asnFilepath) => parse(asnFilepath).name));
+    // res(allAsn.map((asnFilepath) => parse(asnFilepath).name));
+    const result = allAsn.map((asnFilepath) => {
+      return parse(String(asnFilepath)).name;
+    });
+    // res(allAsn.map((asnFilepath) => parse(asnFilepath).name));
+    res(result);
   });
 }
 /**
  * 创建 icon 组件文件
  */
-export function generateIconFiles({
+export async function generateIconFiles({
   iconsPath, // iconsPath 就是 asnPath，两个其实是同一个东西
   output,
   asnPath,
 }: {
   iconsPath: string;
-  asnPath?: string;
-  output?: string;
+  asnPath: string;
+  output: string;
 }) {
-  return new Promise((res, reject) => {
-    const outputDir = output || readCachedFile(DIR_JSON).output;
-    const asnDir = asnPath || resolve(outputDir, "asn");
-    let allAsn: string[] = [];
-    if (!checkIsNpmPackage(asnDir)) {
-      const pattern = resolve(asnDir, "**", "*.ts");
-      vfs
-        .src(pattern)
-        .pipe(
-          through2.obj((file, _, cb) => {
-            if (file.isNull()) {
-              return cb(null, file);
-            }
-            const { path } = file;
-            const { name } = parse(path);
-            allAsn.push(name);
-            const render = template(iconTemplate);
-            const nextContent = render({
-              svgIdentifier: name,
-              iconsPath,
-            });
-            file.contents = Buffer.from(nextContent);
-            file.extname = ".tsx";
-            cb(null, file);
-          })
-        )
-        .pipe(vfs.dest(resolve(outputDir, "icons")));
-      res(allAsn);
-    }
-    // monorepo 的场景，或者说 asn 干脆就是另一个包，和 icons 仅仅是依赖关系，这时需要 require asn
-    import(asnDir).then((module) => {
-      // console.log(module);
-      allAsn = Object.keys(module);
-      allAsn.forEach((svgIdentifier) => {
-        const render = template(iconTemplate);
-        const nextContent = render({
-          svgIdentifier,
-          iconsPath,
-        });
-        const iconFilepath = resolve(
-          outputDir,
-          "icons",
-          `${svgIdentifier}.tsx`
-        );
-        ensure(dirname(iconFilepath));
-        writeFileSync(iconFilepath, nextContent);
-      });
-      res(allAsn);
+  const allAsn = await getAllAsn(asnPath);
+  allAsn.forEach((svgIdentifier) => {
+    const render = template(iconTemplate);
+    const nextContent = render({
+      svgIdentifier,
+      iconsPath,
     });
+    const iconFilepath = resolve(output, "icons", `${svgIdentifier}.tsx`);
+    ensure(dirname(iconFilepath));
+    writeFileSync(iconFilepath, nextContent);
   });
+  return allAsn;
 }
 
 /**
@@ -341,18 +305,17 @@ export async function generateEntry({
   output,
   asnPath,
   render,
+  filepath,
 }: {
   output: string;
   asnPath: string;
+  filepath?: string;
   render: (svgIdentifier: string) => { identifier: string; path: string };
 }) {
   if (asnPath === undefined) {
     return Promise.reject(new Error(`asnPath can't be undefined.`));
   }
-  const filepath = resolve(output, "index.ts");
-  if (checkIsNpmPackage(asnPath)) {
-    return;
-  }
+  const filename = filepath || resolve(output, "index.ts");
   const allAsn = await getAllAsn(asnPath);
   const renderTemplate =
     "export { default as <%= identifier %> } from '<%= path %>';";
@@ -364,8 +327,8 @@ export async function generateEntry({
     })
     .join("\n");
 
-  ensure(dirname(filepath));
-  writeFileSync(filepath, fileContent);
+  ensure(dirname(filename));
+  writeFileSync(filename, fileContent);
 }
 
 /**
