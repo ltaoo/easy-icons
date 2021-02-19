@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-const path = require('path');
-const cp = require('child_process');
+const path = require("path");
+const cp = require("child_process");
 
-const open = require('open');
+const open = require("open");
 const yargs = require("yargs/yargs");
 const { hideBin } = require("yargs/helpers");
 
@@ -18,12 +18,6 @@ const cwd = process.cwd();
 // console.log('[BIN]', cwd);
 
 yargs(hideBin(process.argv))
-  .command('create [filepath]', 'create project use template', (yargs) => {
-
-  }, (argv) => {
-    const { filepath } = argv;
-    cp.execSync(`git clone https://github.com/ltaoo/e-icons-template.git ./${filepath}`);
-  })
   // ------- create command start
   .command(
     "gen [type]",
@@ -31,34 +25,38 @@ yargs(hideBin(process.argv))
     (yargs) => {
       yargs.positional("type", {
         describe: "asn or icons",
-        choices: ['asn', 'icons', 'all'],
+        choices: ["asn", "icons", "all"],
       });
       yargs.option("svg", {
-        alias: 's',
+        alias: "s",
         describe: "svg dir",
         required: true,
       });
       yargs.option("output", {
-        alias: 'o',
+        alias: "o",
         describe: "output dir",
         required: true,
+      });
+      yargs.option("asn-dir", {
+        describe: "required asn module when generate icon",
+        default: "../asn",
       });
     },
     async (argv) => {
       if (argv.verbose) console.info(`start generate asn files.`);
-      const { type, svg, output } = argv;
+      const { type, svg, output, asnDir } = argv;
       // console.log('[BIN]Command create', type, svg, output);
-      if (type === 'asn') {
+      if (type === "asn") {
         generateAsn({ svg, output });
         return;
       }
-      if (type === 'icons') {
-        generateIcons();
+      if (type === "icons") {
+        generateIcons({ asnDir });
         return;
       }
-      if (type === 'all') {
+      if (type === "all") {
         await generateAsn({ svg, output });
-        generateIcons();
+        generateIcons({ asnDir });
       }
     }
   )
@@ -69,7 +67,7 @@ yargs(hideBin(process.argv))
     (yargs) => {
       yargs.option("preview", {
         describe: "only view icons that new",
-        type: 'boolean',
+        type: "boolean",
       });
     },
     (argv) => {
@@ -87,7 +85,7 @@ yargs(hideBin(process.argv))
     (yargs) => {
       yargs.option("type", {
         describe: "framework want to use.",
-        default: 'react',
+        default: "react",
       });
     },
     (argv) => {
@@ -121,7 +119,7 @@ yargs(hideBin(process.argv))
   .command(
     "clean",
     "clean generated files",
-    (yargs) => { },
+    (yargs) => {},
     (argv) => {
       if (argv.verbose) console.info(`clean generated files.`);
       clean();

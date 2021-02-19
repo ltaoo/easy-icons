@@ -47,9 +47,9 @@ async function generateAsn() {
 }
 module.exports.generateAsn = generateAsn;
 
-async function generateIcons() {
+async function generateIcons({ asnDir } = { asnDir: '../asn' }) {
   await generateIconFiles({
-    iconsPath: "../asn",
+    iconsPath: asnDir,
   });
   copyFiles("components/**/*", resolve(OUTPUT_DIR, "components"));
   generateEntry((filepath) => {

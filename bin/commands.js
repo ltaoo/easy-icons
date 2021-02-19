@@ -46,9 +46,9 @@ async function generateAsn({ svg, output }) {
 }
 module.exports.generateAsn = generateAsn;
 
-async function generateIcons() {
+async function generateIcons({ asnDir }) {
     await generateIconFiles({
-        iconsPath: "../asn",
+        iconsPath: asnDir,
     });
     const output = getOutput();
     generateEntry((filepath) => {
