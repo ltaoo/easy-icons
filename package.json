@@ -1,6 +1,6 @@
 {
   "name": "easy-icons",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "Use svg icon like @ant-design/icons.",
   "keywords": [
     "svg",
@@ -24,6 +24,7 @@
     "bin"
   ],
   "scripts": {
+    "start": "dumi dev",
     "type-check": "tsc --noEmit",
     "prebuild": "node scripts/clean.js",
     "build:es": "tsc --project tsconfig.json --module esnext --outDir es",
@@ -59,6 +60,7 @@
     "chalk": "^4.1.0",
     "del": "^5.1.0",
     "globby": "^11.0.0",
+    "insert-css": "^2.0.0",
     "lodash.camelcase": "^4.3.0",
     "lodash.template": "^4.5.0",
     "lodash.upperfirst": "^4.3.1",

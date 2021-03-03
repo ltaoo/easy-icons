@@ -1,7 +1,7 @@
-import * as React from 'react';
-import classNames from 'classnames';
+import * as React from "react";
+import classNames from "classnames";
 
-import { warning, svgBaseProps } from './utils';
+import { warning, svgBaseProps } from "./utils";
 
 export interface IconBaseProps extends React.HTMLProps<HTMLSpanElement> {
   spin?: boolean;
@@ -22,7 +22,7 @@ export interface IconComponentProps extends IconBaseProps {
   component?: React.ComponentType<
     CustomIconComponentProps | React.SVGProps<SVGSVGElement>
   >;
-  ariaLabel?: React.AriaAttributes['aria-label'];
+  ariaLabel?: React.AriaAttributes["aria-label"];
 }
 
 const Icon = React.forwardRef<HTMLSpanElement, IconComponentProps>(
@@ -46,19 +46,19 @@ const Icon = React.forwardRef<HTMLSpanElement, IconComponentProps>(
     } = props;
 
     if (!!Component || !!children) {
-      console.error('Should have `component` prop or `children`.');
+      console.error("Should have `component` prop or `children`.");
     }
     // warning(
     //   Boolean(Component || children),
     //   'Should have `component` prop or `children`.',
     // );
 
-    // useInsertStyles();
+    useInsertStyles();
 
-    const classString = classNames('anticon', className);
+    const classString = classNames("anticon", className);
 
     const svgClassString = classNames({
-      'anticon-spin': !!spin,
+      "anticon-spin": !!spin,
     });
 
     const svgStyle = rotate
@@ -90,9 +90,9 @@ const Icon = React.forwardRef<HTMLSpanElement, IconComponentProps>(
           Boolean(viewBox) ||
             (React.Children.count(children) === 1 &&
               React.isValidElement(children) &&
-              React.Children.only(children).type === 'use'),
-          'Make sure that you provide correct `viewBox`' +
-            ' prop (default `0 0 1024 1024`) to the icon.',
+              React.Children.only(children).type === "use"),
+          "Make sure that you provide correct `viewBox`" +
+            " prop (default `0 0 1024 1024`) to the icon."
         );
 
         return (
@@ -122,9 +122,9 @@ const Icon = React.forwardRef<HTMLSpanElement, IconComponentProps>(
         {renderInnerNode()}
       </span>
     );
-  },
+  }
 );
 
-Icon.displayName = 'AntdIcon';
+Icon.displayName = "AntdIcon";
 
 export default Icon;
