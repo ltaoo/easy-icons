@@ -5,11 +5,9 @@ import upperFirst from "lodash.upperfirst";
 import camelCase from "lodash.camelcase";
 import { pipe } from "ramda";
 
-import { ThemeType, ThemeTypeUpperCase } from "../types";
-
 export interface IdentifierMeta {
   name: string;
-  themeSuffix?: ThemeTypeUpperCase;
+  themeSuffix?: string;
 }
 
 export interface GetIdentifierType {
@@ -34,7 +32,7 @@ export const getIdentifier: GetIdentifierType = pipe(
  */
 export function getNameAndThemeFromPath(filepath: string) {
   const { name, dir } = parse(filepath);
-  const theme = basename(dir) as ThemeType;
+  const theme = basename(dir);
   return {
     name,
     theme,

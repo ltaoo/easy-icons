@@ -75,14 +75,10 @@ describe("2. generate asn file content", () => {
     const theme = "outlined";
 
     const asnString = await svg2asn(content, name, theme);
-    const asnFileContent = await createAsnFileContent(
-      asnString,
-      {
-        name,
-        theme,
-      },
-      false
-    );
+    const asnFileContent = await createAsnFileContent(asnString, {
+      name,
+      theme,
+    });
 
     expect(asnFileContent).toBe(`// This icon file is generated automatically.
 
@@ -93,6 +89,7 @@ export default LikeOutlined;`);
     const asnTsFileContent = await createAsnFileContent(asnString, {
       name,
       theme,
+      typescript: true,
     });
 
     expect(asnTsFileContent).toBe(`// This icon file is generated automatically.
@@ -112,14 +109,10 @@ export default LikeOutlined;`);
     const theme = "filled";
 
     const asnString = await svg2asn(content, name, theme);
-    const asnFileContent = await createAsnFileContent(
-      asnString,
-      {
-        name,
-        theme,
-      },
-      false
-    );
+    const asnFileContent = await createAsnFileContent(asnString, {
+      name,
+      theme,
+    });
 
     expect(asnFileContent).toBe(`// This icon file is generated automatically.
 
@@ -130,6 +123,7 @@ export default LikeFilled;`);
     const asnTsFileContent = await createAsnFileContent(asnString, {
       name,
       theme,
+      typescript: true,
     });
 
     expect(asnTsFileContent).toBe(`// This icon file is generated automatically.
@@ -149,14 +143,10 @@ export default LikeFilled;`);
     const theme = "twotone";
 
     const asnString = await svg2asn(content, name, theme);
-    const asnFileContent = await createAsnFileContent(
-      asnString,
-      {
-        name,
-        theme,
-      },
-      false
-    );
+    const asnFileContent = await createAsnFileContent(asnString, {
+      name,
+      theme,
+    });
 
     expect(asnFileContent).toBe(`// This icon file is generated automatically.
 
@@ -167,6 +157,7 @@ export default LikeTwotone;`);
     const asnTsFileContent = await createAsnFileContent(asnString, {
       name,
       theme,
+      typescript: true,
     });
 
     expect(asnTsFileContent).toBe(`// This icon file is generated automatically.

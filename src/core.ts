@@ -32,7 +32,7 @@ const SVG_CONFIG_MAP = new Proxy(DEFAULT_SVG_CONFIG_MAP, {
  * @param {string} name - svg filename
  * @param {string} theme - svg theme
  */
-export async function svg2asn(svg: string, name: string, theme: ThemeType) {
+export async function svg2asn(svg: string, name: string, theme: string) {
   const optimizer = new SVGO(SVG_CONFIG_MAP[theme]);
   const { data } = await optimizer.optimize(svg);
 
@@ -82,8 +82,11 @@ export default <%= identifier %>;`;
  */
 export function createAsnFileContent(
   asn: string,
-  { name, theme }: { name: string; theme: ThemeType },
-  typescript: boolean = true
+  {
+    name,
+    theme,
+    typescript,
+  }: { name: string; theme: string; typescript?: boolean }
 ) {
   // console.log("[CORE]createAsnFile", asn, typeof asn);
   const mapToInterpolate = ({
@@ -95,9 +98,7 @@ export function createAsnFileContent(
   }) => {
     const identifier = getIdentifier({
       name,
-      themeSuffix: theme
-        ? (upperFirst(theme) as ThemeTypeUpperCase)
-        : undefined,
+      themeSuffix: theme ? upperFirst(theme) : undefined,
     });
     return {
       identifier,
@@ -110,6 +111,10 @@ export function createAsnFileContent(
   )(mapToInterpolate({ name, content: asn }));
 }
 
+interface ITransformerOptions {
+  typescript?: boolean;
+  parser?: (id: string) => { name: string; theme: string };
+}
 /**
  *
  * @param {string} content
@@ -120,18 +125,15 @@ export function createAsnFileContent(
 export async function transformer(
   content: string,
   id: string,
-  { typescript }: { typescript?: boolean }
+  { typescript, parser }: ITransformerOptions
 ) {
-  const { name, theme } = getNameAndThemeFromPath(id);
+  const { name, theme } = parser ? parser(id) : getNameAndThemeFromPath(id);
   const asnContent = await svg2asn(content, name, theme);
-  const asnFileContent = createAsnFileContent(
-    asnContent,
-    {
-      name,
-      theme,
-    },
-    typescript
-  );
+  const asnFileContent = createAsnFileContent(asnContent, {
+    name,
+    theme,
+    typescript,
+  });
   return {
     id,
     content: asnFileContent,
