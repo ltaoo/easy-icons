@@ -11,4 +11,5 @@
     "declaration": true
   },
   "include": ["src/**/*"],
+  "exclude": ["templates"]
 }

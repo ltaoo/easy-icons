@@ -1,8 +1,8 @@
-import { IconDefinition, AbstractNode } from './types';
+import { IconDefinition, AbstractNode } from "./types";
 
 const defaultColors = {
-  primaryColor: '#333',
-  secondaryColor: '#E6E6E6'
+  primaryColor: "#333",
+  secondaryColor: "#e6e6e6",
 };
 
 export interface HelperRenderOptions {
@@ -19,7 +19,7 @@ export function renderIconDefinitionToSVGElement(
   icond: IconDefinition,
   options: HelperRenderOptions = {}
 ): string {
-  if (typeof icond.icon === 'function') {
+  if (typeof icond.icon === "function") {
     // two-tone
     const placeholders = options.placeholders || defaultColors;
     return renderAbstractNodeToSVGElement(
@@ -36,10 +36,10 @@ function renderAbstractNodeToSVGElement(
   options: HelperRenderOptions
 ): string {
   const targetAttrs =
-    node.tag === 'svg'
+    node.tag === "svg"
       ? {
           ...node.attrs,
-          ...(options.extraSVGAttrs || {})
+          ...(options.extraSVGAttrs || {}),
         }
       : node.attrs;
   const attrs = Object.keys(targetAttrs).reduce((acc: string[], nextKey) => {
@@ -49,10 +49,10 @@ function renderAbstractNodeToSVGElement(
     acc.push(token);
     return acc;
   }, []);
-  const attrsToken = attrs.length ? ' ' + attrs.join(' ') : '';
+  const attrsToken = attrs.length ? " " + attrs.join(" ") : "";
   const children = (node.children || [])
     .map((child) => renderAbstractNodeToSVGElement(child, options))
-    .join('');
+    .join("");
 
   if (children && children.length) {
     return `<${node.tag}${attrsToken}>${children}</${node.tag}>`;

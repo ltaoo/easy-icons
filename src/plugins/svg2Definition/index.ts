@@ -88,15 +88,20 @@ function element2AbstractNode({
     );
 }
 
-export function t(
+export function asnGenerator(
   SVGString: string,
-  { name, stringify, theme, extraNodeTransformFactories }: {
+  {
+    name,
+    stringify,
+    theme,
+    extraNodeTransformFactories,
+  }: {
     name: string;
     stringify: StringifyFn;
-    theme: ThemeType,
+    theme: ThemeType;
     extraNodeTransformFactories: TransformFactory[];
   }
-) {
+): string {
   return applyTo(SVGString)(
     pipe(
       // 0. The SVG string is like that:
@@ -129,7 +134,7 @@ export function t(
       pipe(
         // @todo: "defaultTo" is not the best way to deal with the type Maybe<Element>
         get<Element>(["children", 0]),
-        defaultTo(({} as any) as Element)
+        defaultTo({} as any as Element)
       ),
 
       // 2. The element node is with the JSON shape:

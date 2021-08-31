@@ -7,7 +7,6 @@ const chalk = require("chalk");
 const {
   generateAsnFiles,
   generateIconFiles,
-  generatePreviewPage,
   copyFiles,
   generateEntry,
 } = require("../lib");
@@ -91,11 +90,3 @@ module.exports.copyComponents = copyComponents;
  * 根据 git 增量处理生成 icon
  */
 function addIcons() {}
-
-/**
- * 生成预览文件
- */
-function generatePreview(opts) {
-  return generatePreviewPage(opts);
-}
-module.exports.generatePreview = generatePreview;
