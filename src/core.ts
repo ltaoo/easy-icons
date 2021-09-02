@@ -202,3 +202,4 @@ export function generateTypeFiles({
 }) {
   writeFileSync(resolve(output, "types.ts"), TYPES_FILE_CONTENT);
 }
+

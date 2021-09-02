@@ -86,3 +86,11 @@ export function checkIsNpmPackage(filepath: string) {
   }
   return true;
 }
+
+export function ext(
+  typescript?: boolean,
+  prefix: string = "",
+  suffix: string = ""
+) {
+  return typescript ? `${prefix}.ts${suffix}` : `${prefix}.js${suffix}`;
+}
