@@ -7,7 +7,7 @@ import { pipe } from "ramda";
 
 export interface IdentifierMeta {
   name: string;
-  themeSuffix?: string;
+  theme?: string;
 }
 
 export interface GetIdentifierType {
@@ -20,8 +20,7 @@ export interface GetIdentifierType {
  * like + Filled -> LikeFilled
  */
 export const getIdentifier: GetIdentifierType = pipe(
-  ({ name, themeSuffix }: IdentifierMeta) =>
-    name + (themeSuffix ? `-${themeSuffix}` : ""),
+  ({ name, theme }: IdentifierMeta) => name + (theme ? `-${theme}` : ""),
   camelCase,
   upperFirst
 );
@@ -41,11 +40,11 @@ export function getNameAndThemeFromPath(filepath: string) {
 
 /**
  *
- * @param {string} dir
+ * @param {string} filepath
  */
-export function existing(dir: string) {
+export function existing(filepath: string) {
   try {
-    statSync(dir);
+    statSync(filepath);
     return true;
   } catch (err) {
     return false;

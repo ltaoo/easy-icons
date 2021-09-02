@@ -1,3 +1,6 @@
+import { resolve } from "path";
+import { readFileSync, writeFileSync } from "fs";
+
 import SVGO from "svgo";
 
 import template from "lodash.template";
@@ -98,7 +101,7 @@ export function createAsnFileContent(
   }) => {
     const identifier = getIdentifier({
       name,
-      themeSuffix: theme ? upperFirst(theme) : undefined,
+      theme: theme ? upperFirst(theme) : undefined,
     });
     return {
       identifier,
@@ -112,6 +115,8 @@ export function createAsnFileContent(
 }
 
 interface ITransformerOptions {
+  name?: string;
+  theme?: string;
   typescript?: boolean;
   parser?: (id: string) => { name: string; theme: string };
 }
@@ -125,9 +130,18 @@ interface ITransformerOptions {
 export async function transformer(
   content: string,
   id: string,
-  { typescript, parser }: ITransformerOptions
+  { name: n, theme: t, typescript, parser }: ITransformerOptions
 ) {
-  const { name, theme } = parser ? parser(id) : getNameAndThemeFromPath(id);
+  const { name, theme } = (() => {
+    if (parser) {
+      return parser(id);
+    }
+    if (n === undefined || t === undefined) {
+      return getNameAndThemeFromPath(id);
+    }
+    return { name: n, theme: t };
+  })();
+
   const asnContent = await svg2asn(content, name, theme);
   const asnFileContent = createAsnFileContent(asnContent, {
     name,
@@ -156,13 +170,14 @@ const defaultParse = (file: string) => {
  * ['../asn/outlined/like']
  * export { default as LikeOutlined } from '../asn/outlined/like';
  */
-export async function entryRenderer({
-  files,
-  parse,
-}: {
-  files: string[];
-  parse: (file: string) => { identifier: string; path: string };
-}) {
+export function entryRenderer<T = string>(
+  files: T[],
+  {
+    parse,
+  }: {
+    parse: (file: T) => { identifier: string; path: string };
+  }
+) {
   const fileContent = files
     .map((file) => {
       const { identifier, path } = parse(file);
@@ -170,4 +185,20 @@ export async function entryRenderer({
     })
     .join("\n");
   return fileContent;
+}
+
+const TYPES_FILE_CONTENT = readFileSync(
+  resolve(__dirname, "./types.ts"),
+  "utf-8"
+);
+/**
+ * 在指定路径生成类型声明文件
+ */
+export function generateTypeFiles({
+  output,
+}: {
+  output: string;
+  filename?: string;
+}) {
+  writeFileSync(resolve(output, "types.ts"), TYPES_FILE_CONTENT);
 }

@@ -24,7 +24,7 @@ import { ThemeType, AbstractNode } from "../../types";
 
 export interface AbstractNodeDefinition {
   name: string;
-  theme: ThemeType;
+  theme: string;
   icon: AbstractNode;
 }
 
@@ -33,7 +33,7 @@ export interface StringifyFn {
 }
 
 export interface SVG2DefinitionOptions {
-  theme: ThemeType;
+  theme: string;
   extraNodeTransformFactories: TransformFactory[];
   stringify?: StringifyFn;
 }
@@ -92,13 +92,13 @@ export function asnGenerator(
   SVGString: string,
   {
     name,
-    stringify,
     theme,
+    stringify,
     extraNodeTransformFactories,
   }: {
     name: string;
+    theme: string;
     stringify: StringifyFn;
-    theme: ThemeType;
     extraNodeTransformFactories: TransformFactory[];
   }
 ): string {
