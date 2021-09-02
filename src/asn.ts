@@ -2,18 +2,12 @@
  * @file 输入 svg icon 目录，在指定目录输出 asn 文件
  */
 import { readFileSync, writeFileSync } from "fs";
-import { resolve, parse } from "path";
+import { resolve } from "path";
 
 import globby from "globby";
 
-import {
-  existing,
-  ensure,
-  getNameAndThemeFromPath,
-  getIdentifier,
-} from "./utils";
+import { existing, ensure, getIdentifier } from "./utils";
 import { entryRenderer, transformer, generateTypeFiles } from "./core";
-import upperFirst from "lodash.upperfirst";
 
 /**
  * 批量转换 svg 文件成 js/ts 文件
@@ -44,7 +38,7 @@ export async function generateAsnFilesFromSvgDir({
   if (before) {
     before(svgFilepaths);
   }
-  const asnOutput = resolve(output);
+  const asnOutput = resolve(output, "asn");
   ensure(asnOutput);
 
   const result = [];
@@ -60,37 +54,36 @@ export async function generateAsnFilesFromSvgDir({
     });
 
     const { theme, name, content } = asnFile;
-    const asnFileOutput = resolve(asnOutput, asnFile.theme);
-    ensure(asnFileOutput);
-    const asnFilename = resolve(
-      asnFileOutput,
-      `${name}${typescript ? ".ts" : ".js"}`
+    const identifier = getIdentifier({ name, theme });
+    const asnFilepath = resolve(
+      asnOutput,
+      `${identifier}${typescript ? ".ts" : ".js"}`
     );
     // console.log("Prepare generate file", asnFilename);
-    writeFileSync(asnFilename, content);
+    writeFileSync(asnFilepath, content);
 
     result.push({
       ...asnFile,
-      id: asnFilename,
-      relativePath: `./${theme}/${name}`,
+      identifier,
+      id: asnFilepath,
     });
   }
 
   const entryFileContent = entryRenderer(result, {
     parse: (asnFile) => {
-      const { name, theme } = asnFile;
+      const { identifier } = asnFile;
       return {
-        identifier: getIdentifier({ name, theme }),
-        path: asnFile.relativePath,
+        identifier,
+        path: `./asn/${identifier}`,
       };
     },
   });
 
-  const entryFilepath = resolve(asnOutput, `index.${typescript ? "ts" : "js"}`);
+  const entryFilepath = resolve(output, `index.${typescript ? "ts" : "js"}`);
   writeFileSync(entryFilepath, entryFileContent);
 
   if (typescript) {
-    generateTypeFiles({ output: asnOutput });
+    generateTypeFiles({ output });
   }
 
   return result;
