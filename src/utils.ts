@@ -1,5 +1,5 @@
-import { parse, basename, dirname } from "path";
-import { statSync, mkdirSync } from "fs";
+import { parse, basename, dirname, resolve } from "path";
+import { statSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 
 import upperFirst from "lodash.upperfirst";
 import camelCase from "lodash.camelcase";
@@ -42,7 +42,10 @@ export function getNameAndThemeFromPath(filepath: string) {
  *
  * @param {string} filepath
  */
-export function existing(filepath: string) {
+export function existing(filepath?: string) {
+  if (filepath === undefined) {
+    return false;
+  }
   try {
     statSync(filepath);
     return true;
@@ -93,4 +96,17 @@ export function ext(
   suffix: string = ""
 ) {
   return typescript ? `${prefix}.ts${suffix}` : `${prefix}.js${suffix}`;
+}
+
+const TYPES_FILE_CONTENT = readFileSync(
+  resolve(__dirname, "./types.ts"),
+  "utf-8"
+);
+export function generateTypeFiles({
+  output,
+}: {
+  output: string;
+  filename?: string;
+}) {
+  writeFileSync(resolve(output, "types.ts"), TYPES_FILE_CONTENT);
 }

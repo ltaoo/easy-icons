@@ -1,87 +1,92 @@
 /**
- * @file 渲染 react 组件
+ * @file react icon 文件的生成
  */
 import { writeFileSync } from "fs";
-import { resolve, relative, parse } from "path";
+import { relative, resolve } from "path";
 
-import globby from "globby";
 import cpy from "cpy";
 
-import { ensure, existing, ext } from "./utils";
-import {
-  reactJsIconComponentRenderer,
-  reactTsIconComponentRenderer,
-  REACT_JS_ICON_COMPONENTS_DIR,
-  REACT_TS_ICON_COMPONENTS_DIR,
-} from "./constant";
-import { entryRenderer, generateTypeFiles } from "./core";
+import { ensure, generateTypeFiles } from "./utils";
+import { ANSOutputTransformer, reactIconsOutputTransformer } from "./core";
+import { ASNFilesGenerator, SVGFilesReader } from "./asn";
 
-/**
- * 从指定 asn 目录生成 react icon 文件
- */
-export async function generateReactIconFilesFromAsnDir({
-  asnDir,
-  output,
-  typescript,
-}: {
-  asnDir: string;
+interface ReactIconsGeneratorOptions {
+  /**
+   * SVG 目录
+   */
+  entry?: string;
+  /**
+   * react icon 入口文件
+   */
+  entryFile?: { filename: string; content: string };
+  /**
+   * react icon 列表
+   */
+  icons?: { filename: string; identifier: string; content: string }[];
+  /**
+   * react icons 输出目录
+   */
   output: string;
+  /**
+   * icons 文件夹名称
+   */
+  iconsDirName?: string;
+  /**
+   * 生成 ts
+   */
   typescript?: boolean;
-}) {
-  if (!existing(asnDir)) {
-    return Promise.reject(new Error(`${asnDir} is not existing.`));
-  }
-  const pattern = resolve(asnDir, "**", ext(typescript, "*"));
-  const asnFilepaths = await globby(pattern);
-  const reactIconOutput = resolve(output, "icons");
-  ensure(reactIconOutput);
+}
+/**
+ * react icons 生成器
+ */
+export async function reactIconsGenerator({
+  entry,
+  entryFile,
+  icons,
+  output,
+  iconsDirName,
+  typescript,
+}: ReactIconsGeneratorOptions) {
+  const reactIconOutputDir = resolve(output, iconsDirName || "icons");
+  const { reactIcons, reactIconEntryFile } = await (async () => {
+    if (entry) {
+      const ASNOutput = await ASNFilesGenerator({ entry, output, typescript });
+      const reactIconOutput = await reactIconsOutputTransformer({
+        ASNNodes: ASNOutput.ASNNodes,
+        ASNFilepath: relative(reactIconOutputDir, ASNOutput.output),
+        typescript,
+      });
+      return {
+        reactIconEntryFile: reactIconOutput.entryFile,
+        reactIcons: reactIconOutput.icons,
+      };
+    }
+    // 如果 entry 是空，entryFile、icons 也为空，应该报错
+    return {
+      reactIconEntryFile: entryFile,
+      reactIcons: icons || [],
+    };
+  })();
+
+  ensure(reactIconOutputDir);
 
   const result = [];
-  // begin process svg files
-  for (let i = 0; i < asnFilepaths.length; i += 1) {
-    const asnFilepath = asnFilepaths[i];
+  for (let i = 0; i < reactIcons.length; i += 1) {
+    const { filename, identifier, content } = reactIcons[i];
 
-    if (
-      asnFilepath.includes(`index${ext(typescript)}`) ||
-      asnFilepath.includes(`types${ext(typescript)}`)
-    ) {
-      continue;
-    }
-
-    const { name } = parse(asnFilepath);
-
-    const svgIdentifier = name;
-    const renderer = typescript
-      ? reactTsIconComponentRenderer
-      : reactJsIconComponentRenderer;
-    const reactIconComponentContent = renderer({
-      iconsPath: relative(reactIconOutput, resolve(asnDir, "./asn")),
-      svgIdentifier,
-    });
-
-    const reactIconComponentFilepath = resolve(
-      reactIconOutput,
-      `${svgIdentifier}${ext(typescript, "", "x")}`
-    );
-    writeFileSync(reactIconComponentFilepath, reactIconComponentContent);
+    const reactIconFilepath = resolve(reactIconOutputDir, filename);
+    writeFileSync(reactIconFilepath, content);
 
     result.push({
-      id: reactIconComponentFilepath,
-      identifier: svgIdentifier,
+      id: reactIconFilepath,
+      identifier,
     });
   }
 
-  const entryFileContent = entryRenderer(result, {
-    parse: ({ identifier }) => {
-      return {
-        identifier,
-        path: `./icons/${identifier}`,
-      };
-    },
-  });
-
-  const entryFilepath = resolve(output, `index${ext(typescript)}`);
-  writeFileSync(entryFilepath, entryFileContent);
+  if (reactIconEntryFile) {
+    const entryFilepath = resolve(output, reactIconEntryFile.filename);
+    writeFileSync(entryFilepath, reactIconEntryFile.content);
+  }
 
   if (typescript) {
     generateTypeFiles({ output });

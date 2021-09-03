@@ -3,7 +3,7 @@ import globby from "globby";
 import { resolve } from "path";
 import rimraf from "rimraf";
 
-import { generateAsnFilesFromSvgDir } from "../asn";
+import { ASNFilesGenerator } from "../asn";
 
 const ICON_ROOT_DIR = resolve(__dirname, "../fixtures/svg");
 const OUTPUT_DIR = resolve(__dirname, "../fixtures/output");
@@ -25,18 +25,10 @@ afterEach(async () => {
 
 describe("1. generate asn string", () => {
   it("javascript file", async () => {
-    const fakeBefore = jest.fn();
-    await generateAsnFilesFromSvgDir({
+    await ASNFilesGenerator({
       entry: ICON_ROOT_DIR,
       output: OUTPUT_DIR,
-      before: fakeBefore,
     });
-
-    expect(fakeBefore.mock.calls[0][0].sort()).toEqual([
-      resolveSvg("./filled/like.svg"),
-      resolveSvg("./outlined/like.svg"),
-      resolveSvg("./twotone/like.svg"),
-    ]);
 
     const generatedFiles = await globby(resolve(OUTPUT_DIR, "**", "*.js"));
     expect(generatedFiles.sort()).toStrictEqual([
@@ -48,19 +40,11 @@ describe("1. generate asn string", () => {
   });
 
   it("typescript file", async () => {
-    const fakeBefore = jest.fn();
-    await generateAsnFilesFromSvgDir({
+    await ASNFilesGenerator({
       entry: ICON_ROOT_DIR,
       output: OUTPUT_DIR,
-      before: fakeBefore,
       typescript: true,
     });
-
-    expect(fakeBefore.mock.calls[0][0].sort()).toEqual([
-      resolveSvg("./filled/like.svg"),
-      resolveSvg("./outlined/like.svg"),
-      resolveSvg("./twotone/like.svg"),
-    ]);
 
     const generatedFiles = await globby(resolve(OUTPUT_DIR, "**", "*.ts"));
     expect(generatedFiles.sort()).toStrictEqual([

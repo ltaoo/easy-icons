@@ -1,90 +1,90 @@
 /**
- * @file 输入 svg icon 目录，在指定目录输出 asn 文件
+ * @file ASN 文件的生成
  */
 import { readFileSync, writeFileSync } from "fs";
 import { resolve } from "path";
 
 import globby from "globby";
 
-import { existing, ensure, getIdentifier } from "./utils";
-import { entryRenderer, transformer, generateTypeFiles } from "./core";
-
+import { ensure, existing, generateTypeFiles } from "./utils";
+import { ANSOutputTransformer } from "./core";
 /**
- * 批量转换 svg 文件成 js/ts 文件
- * @param {string} svg - svg 文件夹
- * @param {string} output - 生成的 asn 文件保存的路径
- * @param {boolean} [typescript=true] - 生成的 asn 文件是否是 ts 文件
- * @param {() => void} [cb] - 处理完所有文件后的回调（此时文件并没有生成）
+ * SVG 文件读取器
  */
-export async function generateAsnFilesFromSvgDir({
+export async function SVGFilesReader({
   entry,
-  output,
-  typescript,
-  before,
-  parser,
-}: {
-  entry: string;
-  output: string;
-  typescript?: boolean;
-  parser?: (id: string) => { name: string; theme: string };
-  before?: (files: any[]) => void;
-}) {
+}: Partial<ASNFilesGeneratorOptions>): Promise<
+  { filepath: string; content: string }[]
+> {
   if (!existing(entry)) {
     return Promise.reject(new Error(`${entry} is not existing.`));
   }
-  const pattern = resolve(entry, "**", "*.svg");
-  // before process svg files
-  const svgFilepaths = await globby(pattern);
-  if (before) {
-    before(svgFilepaths);
-  }
-  const asnOutput = resolve(output, "asn");
-  ensure(asnOutput);
-
-  const result = [];
-  // begin process svg files
-  for (let i = 0; i < svgFilepaths.length; i += 1) {
-    const svgFilepath = svgFilepaths[i];
-    const svgContent = readFileSync(svgFilepath, "utf-8");
-
-    // 在这里计算出图标的 Identifier 和 Theme
-
-    const asnFile = await transformer(svgContent, svgFilepath, {
-      typescript,
-    });
-
-    const { theme, name, content } = asnFile;
-    const identifier = getIdentifier({ name, theme });
-    const asnFilepath = resolve(
-      asnOutput,
-      `${identifier}${typescript ? ".ts" : ".js"}`
-    );
-    // console.log("Prepare generate file", asnFilename);
-    writeFileSync(asnFilepath, content);
-
-    result.push({
-      ...asnFile,
-      identifier,
-      id: asnFilepath,
-    });
-  }
-
-  const entryFileContent = entryRenderer(result, {
-    parse: (asnFile) => {
-      const { identifier } = asnFile;
-      return {
-        identifier,
-        path: `./asn/${identifier}`,
-      };
-    },
+  const pattern = resolve(entry!, "**", "*.svg");
+  const SVGFilepaths = await globby(pattern);
+  return SVGFilepaths.map((SVGFile) => {
+    const SVGContent = readFileSync(SVGFile, "utf-8");
+    return {
+      filepath: SVGFile,
+      content: SVGContent,
+    };
   });
+}
 
-  const entryFilepath = resolve(output, `index.${typescript ? "ts" : "js"}`);
-  writeFileSync(entryFilepath, entryFileContent);
+interface ASNFilesGeneratorOptions {
+  /**
+   * SVG 文件入口
+   */
+  entry: string;
+  /**
+   * ASN 文件输出目录
+   * 如指定 /output，将会输出 /output/asn/LikeOutlined.ts 目录结构
+   */
+  output: string;
+  /**
+   * 生成 typescript 还是 javascript 文件
+   */
+  typescript?: boolean;
+  /**
+   * 输出的 ASN 文件夹名
+   * 如指定 /abc，将会输出 /output/abc/LikeOutlined.ts 目录结构
+   * @default 'asn'
+   */
+  ASNDirName?: string;
+}
 
+/**
+ * ASN 文件生成
+ */
+export async function ASNFilesGenerator({
+  entry,
+  output,
+  typescript,
+  ASNDirName,
+}: ASNFilesGeneratorOptions) {
+  const SVGFiles = await SVGFilesReader({ entry });
+  const ASNOutput = await ANSOutputTransformer({
+    SVGFiles,
+    ASNDirName,
+    typescript,
+  });
+  const { entryFile: ASNEntryFile, ASNNodes } = ASNOutput;
+  const ASNOutputDir = resolve(output, ASNDirName || "asn");
+  ensure(ASNOutputDir);
+
+  // generate index.ts
+  writeFileSync(resolve(output, ASNEntryFile.filename), ASNEntryFile.content);
+  // generate asn files
+  for (let i = 0; i < ASNNodes.length; i += 1) {
+    const { filename, content } = ASNNodes[i];
+    writeFileSync(resolve(ASNOutputDir, filename), content);
+  }
+  // copy types.ts
   if (typescript) {
     generateTypeFiles({ output });
   }
 
-  return result;
+  return {
+    ...ASNOutput,
+    output: ASNOutputDir,
+  };
 }
