@@ -1,13 +1,19 @@
 /**
  * @file react icon 文件的生成
  */
-import { writeFileSync } from "fs";
+import { readFileSync, statSync, writeFileSync } from "fs";
 import { relative, resolve } from "path";
 
 import cpy from "cpy";
 
-import { ensure, generateTypeFiles } from "./utils";
-import { ANSOutputTransformer, reactIconsOutputTransformer } from "./core";
+import { ensure, ext, generateTypeFiles } from "./utils";
+import {
+  ANSOutputTransformer,
+  ASNNodeTransformer,
+  entryRenderer,
+  reactIconsOutputTransformer,
+  reactIconTransformer,
+} from "./core";
 import { ASNFilesGenerator, SVGFilesReader } from "./asn";
 
 interface ReactIconsGeneratorOptions {
@@ -116,4 +122,87 @@ async function copyIconComponents({
   await cpy("templates/react-js/components/**", output, {
     rename: (basename) => `components/${basename}`,
   });
+}
+
+interface SingleReactIconGeneratorOptions {
+  SVGPath: string;
+  output: string;
+  ASNDirName?: string;
+  iconsDirName?: string;
+  typescript?: boolean;
+}
+function tmpEntryRender({
+  identifier,
+  output,
+  iconsDirName,
+}: {
+  identifier: string;
+  output: string;
+  iconsDirName: string;
+}) {
+  const path = relative(output, resolve(output, iconsDirName, identifier));
+  return entryRenderer<string>([identifier], {
+    parse(identifier) {
+      return {
+        identifier,
+        path: path.charAt(0) === "." ? path : `./${path}`,
+      };
+    },
+  });
+}
+/**
+ * 单个 icon 组件生成
+ * 为了增量生成 icon
+ */
+export async function singleReactIconGenerator({
+  SVGPath,
+  output,
+  ASNDirName,
+  iconsDirName,
+  typescript,
+}: SingleReactIconGeneratorOptions) {
+  const SVGFileContent = readFileSync(SVGPath, "utf-8");
+  const ASNNode = await ASNNodeTransformer(SVGFileContent, SVGPath, {
+    typescript,
+  });
+  const ASNOutputDir = resolve(output, ASNDirName || "asn");
+  ensure(ASNOutputDir);
+  // generate asn file
+  writeFileSync(resolve(ASNOutputDir, ASNNode.filename), ASNNode.content);
+  // generate icon file
+  const reactIconOutputDir = resolve(output, iconsDirName || "icons");
+  ensure(reactIconOutputDir);
+  const reactIcon = await reactIconTransformer({
+    ASNFilepath: relative(reactIconOutputDir, ASNOutputDir),
+    identifier: ASNNode.identifier,
+    typescript,
+  });
+  writeFileSync(
+    resolve(reactIconOutputDir, reactIcon.filename),
+    reactIcon.content
+  );
+  // update entry file
+  const entryFilepath = resolve(output, `index${ext(typescript)}`);
+  try {
+    statSync(entryFilepath);
+    const prevEntryFileContent = readFileSync(entryFilepath, "utf-8");
+    // if index.ts has existing, update
+    if (prevEntryFileContent.includes(ASNNode.identifier)) {
+      return;
+    }
+    const newIconExported = tmpEntryRender({
+      identifier: ASNNode.identifier,
+      output,
+      iconsDirName: iconsDirName || "icons",
+    });
+    writeFileSync(entryFilepath, `${prevEntryFileContent}\n${newIconExported}`);
+  } catch (err) {
+    // if index.ts not existing, create one
+    const entryFileContent = tmpEntryRender({
+      identifier: ASNNode.identifier,
+      output,
+      iconsDirName: iconsDirName || "icons",
+    });
+    writeFileSync(entryFilepath, entryFileContent);
+  }
 }

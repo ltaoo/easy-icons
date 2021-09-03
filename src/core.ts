@@ -288,6 +288,7 @@ export async function ANSOutputTransformer({
       const { identifier } = ASNNode;
       return {
         identifier,
+        // @TODO
         path: `./${ASNDirName || "asn"}/${identifier}`,
       };
     },
@@ -309,10 +310,11 @@ interface ReactIconTransformerOptions
   > {
   identifier: string;
 }
+
 /**
  * 从 asn 生成单个 react icon 组件
  */
-function reactIconTransformer({
+export function reactIconTransformer({
   ASNFilepath,
   identifier,
   typescript,
@@ -368,6 +370,7 @@ export async function reactIconsOutputTransformer({
       const { identifier } = reactIcon;
       return {
         identifier,
+        // @TODO
         path: `./${iconsDirName || "icons"}/${identifier}`,
       };
     },

@@ -3,7 +3,7 @@ import globby from "globby";
 import { resolve } from "path";
 import rimraf from "rimraf";
 
-import { reactIconsGenerator } from "../react";
+import { reactIconsGenerator, singleReactIconGenerator } from "../react";
 
 const JS_ICON_ROOT_DIR = resolve(__dirname, "../fixtures/asn-js");
 const TS_ICON_ROOT_DIR = resolve(__dirname, "../fixtures/asn-ts");
@@ -84,7 +84,6 @@ describe("2. directly generate react icons from svg icons", () => {
   //     output: OUTPUT_DIR,
   //     typescript: true,
   //   });
-
   //   const generatedFiles = await globby([
   //     resolve(OUTPUT_DIR, "**", "*.ts"),
   //     resolve(OUTPUT_DIR, "**", "*.tsx"),
@@ -106,31 +105,62 @@ describe("2. directly generate react icons from svg icons", () => {
   //     resolveOutput("./types.ts"),
   //   ]);
   // });
+  // it("javascript file", async () => {
+  //   await reactIconsGenerator({
+  //     entry: ICON_ROOT_DIR,
+  //     output: OUTPUT_DIR,
+  //   });
+  //   const generatedFiles = await globby([
+  //     resolve(OUTPUT_DIR, "**", "*.js"),
+  //     resolve(OUTPUT_DIR, "**", "*.jsx"),
+  //   ]);
+  //   expect(generatedFiles.sort()).toStrictEqual([
+  //     resolveOutput("./asn/LikeFilled.js"),
+  //     resolveOutput("./asn/LikeOutlined.js"),
+  //     resolveOutput("./asn/LikeTwotone.js"),
+  //     resolveOutput("./components/AntdIcon.jsx"),
+  //     resolveOutput("./components/Icon.jsx"),
+  //     resolveOutput("./components/IconBase.jsx"),
+  //     resolveOutput("./components/IconFont.jsx"),
+  //     resolveOutput("./components/twoTonePrimaryColor.js"),
+  //     resolveOutput("./components/utils.js"),
+  //     resolveOutput("./icons/LikeFilled.jsx"),
+  //     resolveOutput("./icons/LikeOutlined.jsx"),
+  //     resolveOutput("./icons/LikeTwotone.jsx"),
+  //     resolveOutput("./index.js"),
+  //   ]);
+  // });
 
-  it("javascript file", async () => {
-    await reactIconsGenerator({
-      entry: ICON_ROOT_DIR,
+  // it("single javascript file", async () => {
+  //   await singleReactIconGenerator({
+  //     SVGPath: resolve(ICON_ROOT_DIR, "./outlined/like.svg"),
+  //     output: OUTPUT_DIR,
+  //   });
+  //   const generatedFiles = await globby([
+  //     resolve(OUTPUT_DIR, "**", "*.js"),
+  //     resolve(OUTPUT_DIR, "**", "*.jsx"),
+  //   ]);
+  //   expect(generatedFiles.sort()).toStrictEqual([
+  //     resolveOutput("./asn/LikeFilled.js"),
+  //     resolveOutput("./icons/LikeFilled.jsx"),
+  //     resolveOutput("./index.js"),
+  //   ]);
+  // });
+
+  it("single javascript file", async () => {
+    await singleReactIconGenerator({
+      SVGPath: resolve(ICON_ROOT_DIR, "./filled/like.svg"),
       output: OUTPUT_DIR,
+      typescript: true,
     });
-
     const generatedFiles = await globby([
-      resolve(OUTPUT_DIR, "**", "*.js"),
-      resolve(OUTPUT_DIR, "**", "*.jsx"),
+      resolve(OUTPUT_DIR, "**", "*.ts"),
+      resolve(OUTPUT_DIR, "**", "*.tsx"),
     ]);
     expect(generatedFiles.sort()).toStrictEqual([
-      resolveOutput("./asn/LikeFilled.js"),
-      resolveOutput("./asn/LikeOutlined.js"),
-      resolveOutput("./asn/LikeTwotone.js"),
-      resolveOutput("./components/AntdIcon.jsx"),
-      resolveOutput("./components/Icon.jsx"),
-      resolveOutput("./components/IconBase.jsx"),
-      resolveOutput("./components/IconFont.jsx"),
-      resolveOutput("./components/twoTonePrimaryColor.js"),
-      resolveOutput("./components/utils.js"),
-      resolveOutput("./icons/LikeFilled.jsx"),
-      resolveOutput("./icons/LikeOutlined.jsx"),
-      resolveOutput("./icons/LikeTwotone.jsx"),
-      resolveOutput("./index.js"),
+      resolveOutput("./asn/LikeFilled.ts"),
+      resolveOutput("./icons/LikeFilled.tsx"),
+      resolveOutput("./index.ts"),
     ]);
   });
 });
