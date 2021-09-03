@@ -1,24 +1,28 @@
 const path = require("path");
 
-const vfs = require("vinyl-fs");
+const cpy = require("cpy");
 
 const ROOT_DIR = __dirname;
 function resolve(...paths) {
   return path.resolve(ROOT_DIR, ...paths);
 }
 
+async function main() {
+  await cpy("templates/react-ts/components/**", "lib", {
+    rename: (basename) => `templates/react-ts/components/${basename}`,
+  });
+  await cpy("templates/react-js/components/**", "lib", {
+    rename: (basename) => `templates/react-js/components/${basename}`,
+  });
+  await cpy("templates/react-ts/components/**", "es", {
+    rename: (basename) => `templates/react-ts/components/${basename}`,
+  });
+  await cpy("templates/react-js/components/**", "es", {
+    rename: (basename) => `templates/react-js/components/${basename}`,
+  });
 
-// 拷贝模板文件
-vfs
-  .src([resolve("../templates/*.ejs")])
-  .pipe(vfs.dest(resolve("../lib/templates")));
+  await cpy("src/types.ts", "lib");
+  await cpy("src/types.ts", "es");
+}
 
-// 拷贝 react 组件
-vfs
-  .src([resolve("../templates/components/*")])
-  .pipe(vfs.dest(resolve("../lib/components")));
-
-// 拷贝两个声明文件需要复用
-vfs
-  .src([resolve("../src/types.ts"), resolve("../src/helpers.ts")])
-  .pipe(vfs.dest(resolve("../lib/types")));
+main();

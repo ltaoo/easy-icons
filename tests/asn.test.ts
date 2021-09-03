@@ -3,10 +3,10 @@ import globby from "globby";
 import { resolve } from "path";
 import rimraf from "rimraf";
 
-import { ASNFilesGenerator } from "../asn";
+import { ASNFilesGenerator } from "../src/asn";
 
-const ICON_ROOT_DIR = resolve(__dirname, "../fixtures/svg");
-const OUTPUT_DIR = resolve(__dirname, "../fixtures/output");
+const ICON_ROOT_DIR = resolve(__dirname, "./fixtures/svg");
+const OUTPUT_DIR = resolve(__dirname, "./output");
 function resolveSvg(...paths: string[]) {
   return resolve(ICON_ROOT_DIR, ...paths);
 }

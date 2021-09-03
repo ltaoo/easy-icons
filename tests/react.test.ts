@@ -7,11 +7,11 @@ import {
   reactIconsGenerator,
   reactIconsGeneratorFromSVGDir,
   singleReactIconGenerator,
-} from "../react";
+} from "../src/react";
 
-const JS_ICON_ROOT_DIR = resolve(__dirname, "../fixtures/asn-js");
-const TS_ICON_ROOT_DIR = resolve(__dirname, "../fixtures/asn-ts");
-const OUTPUT_DIR = resolve(__dirname, "../fixtures/output");
+const JS_ICON_ROOT_DIR = resolve(__dirname, "./fixtures/asn-js");
+const TS_ICON_ROOT_DIR = resolve(__dirname, "./fixtures/asn-ts");
+const OUTPUT_DIR = resolve(__dirname, "./output");
 function resolveJsIcon(...paths: string[]) {
   return resolve(JS_ICON_ROOT_DIR, ...paths);
 }
@@ -76,7 +76,7 @@ function resolveOutput(...paths: string[]) {
 //   });
 // });
 
-const ICON_ROOT_DIR = resolve(__dirname, "../fixtures/svg");
+const ICON_ROOT_DIR = resolve(__dirname, "./fixtures/svg");
 function resolveSvg(...paths: string[]) {
   return resolve(ICON_ROOT_DIR, ...paths);
 }

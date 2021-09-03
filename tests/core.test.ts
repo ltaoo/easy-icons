@@ -6,7 +6,7 @@ import {
   createAsnFileContent,
   ANSOutputTransformer,
   reactIconsOutputTransformer,
-} from "../core";
+} from "../src/core";
 
 // const ICON_ROOT_DIR = resolve(__dirname, "../fixtures/svg");
 
