@@ -7,16 +7,13 @@
     "icons",
     "ant-design/icons"
   ],
-  "author": "litao<litaowork@aliyun.com>",
-  "homepage": "https://ltaoo.github.io/e-icons",
+  "author": "ltaoo<litaowork@aliyun.com>",
+  "homepage": "https://ltaoo.github.io/easy-icons",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ltaoo/e-icons.git"
+    "url": "https://github.com/ltaoo/easy-icons.git"
   },
   "license": "ISC",
-  "bin": {
-    "ei": "./bin/index.js"
-  },
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
@@ -24,53 +21,50 @@
     "bin"
   ],
   "scripts": {
-    "start": "dumi dev",
-    "type-check": "tsc --noEmit",
-    "prebuild": "node scripts/clean.js",
-    "build:es": "tsc --project tsconfig.json --module esnext --outDir es",
-    "build:lib": "tsc --project tsconfig.json --module commonjs --outDir lib",
-    "build": "cross-env NODE_ENV=production && npm run build:lib",
+    "dev": "father-build --watch",
+    "build": "father-build",
     "postbuild": "node scripts/copy.js",
+    "type-check": "tsc --noEmit",
     "prepublishOnly": "npm run build",
     "docs": "yarn dumi dev",
     "build:docs": "yarn dumi build",
     "predeploy": "yarn build:docs",
-    "deploy": "node scripts/deploy.js"
+    "deploy": "node scripts/deploy.js",
+    "release": "release-it"
   },
   "devDependencies": {
+    "@babel/preset-typescript": "^7.15.0",
+    "@types/jest": "^27.0.1",
     "@types/lodash.camelcase": "^4.3.6",
     "@types/lodash.template": "^4.4.6",
     "@types/lodash.upperfirst": "^4.3.6",
     "@types/node": "^13.9.3",
     "@types/ramda": "^0.26.43",
-    "@types/react": "^17.0.2",
-    "@types/react-dom": "^17.0.1",
     "@types/rgrove__parse-xml": "^1.1.0",
+    "@types/rimraf": "^3.0.2",
     "@types/svgo": "^1.3.1",
-    "@types/through2": "^2.0.34",
-    "@types/vinyl-fs": "^2.4.11",
+    "@types/yargs": "^17.0.2",
     "@umijs/fabric": "^2.2.2",
     "cross-env": "^7.0.0",
     "dumi": "^1.1.4",
+    "father-build": "^1.19.8",
     "gh-pages": "^3.1.0",
-    "typescript": "^3.8.3"
+    "release-it": "^14.11.5",
+    "rimraf": "^3.0.2",
+    "typescript": "^3.8.3",
+    "umi-test": "^1.9.6"
   },
   "dependencies": {
     "@rgrove/parse-xml": "^2.0.2",
     "chalk": "^4.1.0",
-    "del": "^5.1.0",
+    "cpy": "^8.1.2",
     "globby": "^11.0.0",
     "insert-css": "^2.0.0",
     "lodash.camelcase": "^4.3.0",
     "lodash.template": "^4.5.0",
     "lodash.upperfirst": "^4.3.1",
-    "open": "^7.4.1",
     "ramda": "^0.27.0",
-    "react": "^17.0.1",
-    "react-dom": "^17.0.1",
     "svgo": "^1.3.2",
-    "through2": "^4.0.2",
-    "vinyl-fs": "^2.2.0",
     "yargs": "^17.0.0-candidate.0"
   }
 }

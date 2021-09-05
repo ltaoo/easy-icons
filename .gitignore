@@ -37,6 +37,8 @@ docs-dist
 bin/tmp.json
 example/src
 
+**/fixtures/output
+
 # docz
 .docz
 docz-dist

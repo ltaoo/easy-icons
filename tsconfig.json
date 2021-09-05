@@ -10,5 +10,6 @@
     "target": "es5",
     "declaration": true
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "tests"],
+  "exclude": ["templates"]
 }

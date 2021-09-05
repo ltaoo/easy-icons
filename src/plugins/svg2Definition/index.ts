@@ -24,7 +24,7 @@ import { ThemeType, AbstractNode } from "../../types";
 
 export interface AbstractNodeDefinition {
   name: string;
-  theme: ThemeType;
+  theme: string;
   icon: AbstractNode;
 }
 
@@ -33,7 +33,7 @@ export interface StringifyFn {
 }
 
 export interface SVG2DefinitionOptions {
-  theme: ThemeType;
+  theme: string;
   extraNodeTransformFactories: TransformFactory[];
   stringify?: StringifyFn;
 }
@@ -88,15 +88,20 @@ function element2AbstractNode({
     );
 }
 
-export function t(
+export function asnGenerator(
   SVGString: string,
-  { name, stringify, theme, extraNodeTransformFactories }: {
+  {
+    name,
+    theme,
+    stringify,
+    extraNodeTransformFactories,
+  }: {
     name: string;
+    theme: string;
     stringify: StringifyFn;
-    theme: ThemeType,
     extraNodeTransformFactories: TransformFactory[];
   }
-) {
+): string {
   return applyTo(SVGString)(
     pipe(
       // 0. The SVG string is like that:
@@ -129,7 +134,7 @@ export function t(
       pipe(
         // @todo: "defaultTo" is not the best way to deal with the type Maybe<Element>
         get<Element>(["children", 0]),
-        defaultTo(({} as any) as Element)
+        defaultTo({} as any as Element)
       ),
 
       // 2. The element node is with the JSON shape:
