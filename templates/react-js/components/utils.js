@@ -1,5 +1,5 @@
-import React, { useEffect } from "react";
-import { insertCss } from 'insert-css';
+import React from "react"; // import { insertCss } from 'insert-css';
+
 import { generate as generateColor } from "@ant-design/colors"; // import warn from 'rc-util/lib/warning';
 
 export function warning(valid, message) {
@@ -117,14 +117,13 @@ export const iconStyles = `
   }
 }
 `;
-let cssInjectedFlag = false;
-export const useInsertStyles = (styleStr = iconStyles) => {
-  useEffect(() => {
-    if (!cssInjectedFlag) {
-      insertCss(styleStr, {
-        prepend: true
-      });
-      cssInjectedFlag = true;
-    }
-  }, []);
-};
+let cssInjectedFlag = false; // export const useInsertStyles = (styleStr: string = iconStyles) => {
+//   useEffect(() => {
+//     if (!cssInjectedFlag) {
+//       insertCss(styleStr, {
+//         prepend: true,
+//       });
+//       cssInjectedFlag = true;
+//     }
+//   }, []);
+// };

@@ -1,3 +1,7 @@
+/**
+ * 将 react ts component 转换成 js 文件
+ * 大部分情况不用执行，除非 react component 有改动
+ */
 const path = require("path");
 const fs = require("fs");
 

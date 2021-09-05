@@ -1,3 +1,6 @@
+/**
+ * @file 复制模板文件到打包目录中
+ */
 const path = require("path");
 
 const cpy = require("cpy");

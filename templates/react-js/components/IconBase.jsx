@@ -1,4 +1,5 @@
-import { generate, getSecondaryColor, isIconDefinition, warning, useInsertStyles } from "./utils";
+import { generate, getSecondaryColor, isIconDefinition, warning // useInsertStyles,
+} from "./utils";
 const twoToneColorPalette = {
   primaryColor: "#333",
   secondaryColor: "#E6E6E6",
@@ -36,9 +37,9 @@ const IconBase = props => {
       primaryColor,
       secondaryColor: secondaryColor || getSecondaryColor(primaryColor)
     };
-  }
+  } // useInsertStyles();
 
-  useInsertStyles();
+
   warning(isIconDefinition(icon), `icon should be icon definiton, but got ${icon}`);
 
   if (!isIconDefinition(icon)) {

@@ -8,15 +8,12 @@
     "ant-design/icons"
   ],
   "author": "ltaoo<litaowork@aliyun.com>",
-  "homepage": "https://ltaoo.github.io/e-icons",
+  "homepage": "https://ltaoo.github.io/easy-icons",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ltaoo/e-icons.git"
+    "url": "https://github.com/ltaoo/easy-icons.git"
   },
   "license": "ISC",
-  "bin": {
-    "ei": "./bin/index.js"
-  },
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
@@ -32,7 +29,8 @@
     "docs": "yarn dumi dev",
     "build:docs": "yarn dumi build",
     "predeploy": "yarn build:docs",
-    "deploy": "node scripts/deploy.js"
+    "deploy": "node scripts/deploy.js",
+    "release": "release-it"
   },
   "devDependencies": {
     "@babel/preset-typescript": "^7.15.0",
@@ -51,6 +49,7 @@
     "dumi": "^1.1.4",
     "father-build": "^1.19.8",
     "gh-pages": "^3.1.0",
+    "release-it": "^14.11.5",
     "rimraf": "^3.0.2",
     "typescript": "^3.8.3",
     "umi-test": "^1.9.6"

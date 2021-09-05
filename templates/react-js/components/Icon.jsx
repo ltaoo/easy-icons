@@ -23,9 +23,9 @@ const Icon = React.forwardRef((props, ref) => {
   //   Boolean(Component || children),
   //   'Should have `component` prop or `children`.',
   // );
+  // useInsertStyles();
 
 
-  useInsertStyles();
   const classString = classNames("anticon", className);
   const svgClassString = classNames({
     "anticon-spin": !!spin

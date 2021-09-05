@@ -1,8 +1,9 @@
-# e-icons
+# easy-icons
 
-`e-icons` 是一个能让使用自己的 `svg icon` 就像使用 `@ant-design/icons` 的工具。
+`easy-icons` 是一个能使用 `svg icon` 就像使用 `@ant-design/icons` 一样的工具。
 
-本项目核心逻辑参考自 `@ant-design/icons`，将其改写为一个能在任意项目中使用的包。核心逻辑就是将 `svg` 文件解析为 `js` 对象，并提供 `React` 组件可直接使用该 `js` 对象渲染图标。
+> 本项目核心逻辑参考自 `@ant-design/icons`，将其改写为一个能在任意项目中使用的包。
+> 核心逻辑就是将 `svg` 文件解析为 `js` 对象，并提供 `React` 组件可直接使用该 `js` 对象渲染图标。
 
 本项目分几种使用方式
 
@@ -67,22 +68,9 @@ yarn ei gen all --svg src/svg --output src/icons
 const { SmileOutlined } from '@/icons';
 ```
 
-## 4、在 umi 项目中使用（todo）
+## 4、在 umi 项目中使用
 
-可使用插件
-
-## todo
-
-[] 支持 vue 项目
-[] 支持在非 ts 项目中直接使用
-[] 优化 bin 目录下代码
-[] 实现 umi 插件供在 umi 项目中快捷使用
-[] verbose 参数打印调试信息
-[] 只有 asn 项目时也能预览
-
-## Nodejs API
-
-见 `example/api/index.js`。
+使用 `umi-plugin-icons` 插件即可。
 
 ## faq
 
@@ -97,6 +85,14 @@ yarn gen all --svg <svg-dir> --output <output-dir>
 ### 如何实现按需加载
 
 使用 `babel-plugin-import` 插件，并配置
+
+```js
+ {
+  libraryName: '@icons',
+  libraryDirectory: 'icons',
+  camel2DashComponentName: false,
+},
+```
 
 ## 原理说明
 
@@ -139,3 +135,24 @@ const { data } = await optimizer.optimize(svg);
   ]
 }
 ```
+
+再生成一个 `asn.ts` 文件，里面会导出上述对象，这样一个文件就可以供组件调用。
+
+```js
+// React Icon component
+import * as React from 'react';
+import LikeOutlinedSvg from './asn/LikeOutlined.ts';
+import AntdIcon, { AntdIconProps } from '../components/AntdIcon';
+
+const LikeOutlined = (
+  props: AntdIconProps,
+  ref: React.ForwardedRef<HTMLSpanElement>,
+) => <AntdIcon {...props} ref={ref} icon={LikeOutlinedSvg} />;
+
+LikeOutlined.displayName = 'LikeOutlined';
+export default React.forwardRef<HTMLSpanElement, AntdIconProps>(LikeOutlined);
+```
+
+这个组件可以直接在项目中使用。
+
+当然，上面所有流程都会由本项目完成，用户只需要直接使用 `<LikeOutlined />` 即可在页面中渲染一个点赞按钮。

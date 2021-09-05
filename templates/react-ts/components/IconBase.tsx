@@ -5,7 +5,7 @@ import {
   getSecondaryColor,
   isIconDefinition,
   warning,
-  useInsertStyles,
+  // useInsertStyles,
 } from "./utils";
 
 export interface IconProps {
@@ -73,7 +73,7 @@ const IconBase: IconBaseComponent<IconProps> = (props) => {
     };
   }
 
-  useInsertStyles();
+  // useInsertStyles();
 
   warning(
     isIconDefinition(icon),

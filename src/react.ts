@@ -165,13 +165,13 @@ async function copyIconComponents({
   typescript?: boolean;
 }) {
   if (typescript === true) {
-    await cpy("templates/react-ts/components/**", output, {
-      rename: (basename) => `components/${basename}`,
+    await cpy(resolve(__dirname, "templates/react-ts/components/**"), output, {
+      rename: (basename: string) => `components/${basename}`,
     });
     return;
   }
-  await cpy("templates/react-js/components/**", output, {
-    rename: (basename) => `components/${basename}`,
+  await cpy(resolve(__dirname, "templates/react-js/components/**"), output, {
+    rename: (basename: string) => `components/${basename}`,
   });
 }
 
@@ -239,7 +239,7 @@ export async function singleReactIconGenerator({
     const prevEntryFileContent = readFileSync(entryFilepath, "utf-8");
     // if index.ts has existing, update
     if (prevEntryFileContent.includes(ASNNode.identifier)) {
-      return;
+      return ASNNode;
     }
     const newIconExported = tmpEntryRender({
       identifier: ASNNode.identifier,
@@ -256,4 +256,5 @@ export async function singleReactIconGenerator({
     });
     writeFileSync(entryFilepath, entryFileContent);
   }
+  return ASNNode;
 }
