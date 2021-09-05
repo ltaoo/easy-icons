@@ -18,7 +18,7 @@
   "typings": "lib/index.d.ts",
   "files": [
     "lib",
-    "bin"
+    "es"
   ],
   "scripts": {
     "dev": "father-build --watch",
