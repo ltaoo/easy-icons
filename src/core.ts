@@ -2,6 +2,7 @@ import SVGO from "svgo";
 
 import template from "lodash.template";
 import upperFirst from "lodash.upperfirst";
+import chalk from "chalk";
 
 import { asnGenerator } from "./plugins/svg2Definition";
 import { generalConfig, remainFillConfig } from "./plugins/svgo/presets";
@@ -132,6 +133,10 @@ interface ASNGeneratorOptions {
    * 如何从 SVG 文件路径生成 name 与 theme
    */
   parser?: (id: string) => { name: string; theme: string };
+  /**
+   * 是否生成更多信息
+   */
+  verbose?: boolean;
 }
 export interface ASNNode {
   /**
@@ -169,7 +174,7 @@ export interface ASNNode {
 export async function ASNNodeTransformer(
   content: string,
   id: string,
-  { name: n, theme: t, typescript, parser }: ASNGeneratorOptions
+  { name: n, theme: t, typescript, parser, verbose }: ASNGeneratorOptions
 ): Promise<ASNNode> {
   const { name, theme } = (() => {
     if (parser) {
@@ -181,6 +186,15 @@ export async function ASNNodeTransformer(
     return { name: n, theme: t };
   })();
 
+  if (verbose) {
+    console.log();
+    console.log(
+      chalk.greenBright("[ASNNodeTransformer]before invoke svg2asn"),
+      content,
+      name,
+      theme
+    );
+  }
   const asnContent = await svg2asn(content, name, theme);
   const asnFileContent = createAsnFileContent(asnContent, {
     name,
@@ -188,6 +202,14 @@ export async function ASNNodeTransformer(
     typescript,
   });
   const identifier = getIdentifier({ name, theme });
+  if (verbose) {
+    console.log();
+    console.log(
+      chalk.greenBright("[ASNNodeTransformer]result"),
+      identifier,
+      asnFileContent
+    );
+  }
   return {
     filename: identifier + ext(typescript),
     identifier,
@@ -263,6 +285,10 @@ interface ASNOutputTransformerOptions {
    * @default 'asn'
    */
   ASNDirName?: string;
+  /**
+   * 是否输出更多信息
+   */
+  verbose?: boolean;
 }
 /**
  * 批量转换 svg 文件成 js/ts 文件
@@ -271,6 +297,7 @@ export async function ANSOutputTransformer({
   SVGFiles,
   typescript,
   ASNDirName,
+  verbose,
 }: ASNOutputTransformerOptions) {
   const ASNNodes = [];
 
@@ -279,6 +306,7 @@ export async function ANSOutputTransformer({
     const { filepath: SVGFilepath, content: SVGContent } = SVGFile;
     const ASNNode = await ASNNodeTransformer(SVGContent, SVGFilepath, {
       typescript,
+      verbose,
     });
     ASNNodes.push(ASNNode);
   }

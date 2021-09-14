@@ -5,6 +5,7 @@ import { readFileSync, writeFileSync } from "fs";
 import { resolve } from "path";
 
 import globby from "globby";
+import chalk from "chalk";
 
 import { ensure, existing, generateTypeFiles } from "./utils";
 import { ANSOutputTransformer } from "./core";
@@ -50,6 +51,10 @@ interface ASNFilesGeneratorOptions {
    * @default 'asn'
    */
   ASNDirName?: string;
+  /**
+   * 是否输出更多信息
+   */
+  verbose?: boolean;
 }
 
 /**
@@ -58,14 +63,21 @@ interface ASNFilesGeneratorOptions {
 export async function ASNFilesGenerator({
   entry,
   output,
-  typescript,
   ASNDirName,
+  typescript,
+  verbose,
 }: ASNFilesGeneratorOptions) {
   const SVGFiles = await SVGFilesReader({ entry });
+  if (verbose) {
+    console.log();
+    console.log(chalk.greenBright("[ASNFilesGenerator]SVG files"), SVGFiles);
+    console.log();
+  }
   const ASNOutput = await ANSOutputTransformer({
     SVGFiles,
     ASNDirName,
     typescript,
+    verbose,
   });
   const { entryFile: ASNEntryFile, ASNNodes } = ASNOutput;
   const ASNOutputDir = resolve(output, ASNDirName || "asn");
@@ -76,7 +88,11 @@ export async function ASNFilesGenerator({
   // generate asn files
   for (let i = 0; i < ASNNodes.length; i += 1) {
     const { filename, content } = ASNNodes[i];
-    writeFileSync(resolve(ASNOutputDir, filename), content);
+    const asnFilepath = resolve(ASNOutputDir, filename);
+    if (verbose) {
+      console.log(chalk.gray("[ASNFilesGenerator]write ASN file"), asnFilepath);
+    }
+    writeFileSync(asnFilepath, content);
   }
   // copy types.ts
   if (typescript) {
