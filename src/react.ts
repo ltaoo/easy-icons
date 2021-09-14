@@ -5,6 +5,7 @@ import { readFileSync, statSync, writeFileSync } from "fs";
 import { relative, resolve } from "path";
 
 import cpy from "cpy";
+import chalk from "chalk";
 
 import { ensure, ext, generateTypeFiles } from "./utils";
 import {
@@ -41,6 +42,10 @@ interface ReactIconsGeneratorOptions {
    * 生成 ts
    */
   typescript?: boolean;
+  /**
+   * 输出更多信息
+   */
+  verbose?: boolean;
 }
 
 /**
@@ -52,6 +57,7 @@ export async function reactIconsGenerator({
   output,
   iconsDirName,
   typescript,
+  verbose,
 }: ReactIconsGeneratorOptions) {
   const reactIconOutputDir = resolve(output, iconsDirName || "icons");
 
@@ -86,6 +92,7 @@ export async function reactIconsGeneratorFromSVGDir({
   iconsDirName,
   ASNFilepath,
   typescript,
+  verbose,
 }: {
   entry: string;
   output?: string;
@@ -94,25 +101,43 @@ export async function reactIconsGeneratorFromSVGDir({
   iconsDirName?: string;
   ASNFilepath?: string;
   typescript?: boolean;
+  verbose?: boolean;
 }) {
   // @TODO output 或 (iconsOutputDir 与 ASNOutputDir) 两者必须存在一个，需要进行错误检查
-  const lastReactIconOutputDir = (iconsOutputDir || output)!;
+  const latestReactIconOutputDir = (iconsOutputDir || output)!;
   const reactIconOutputDir = resolve(
-    lastReactIconOutputDir,
+    latestReactIconOutputDir,
     iconsDirName || "icons"
   );
-  const lastAnsOutputDir = (ASNOutputDir || output)!;
+  const latestAnsOutputDir = (ASNOutputDir || output)!;
+  if (verbose) {
+    console.log(chalk.gray("[ReactIconsGenerator]the SVG entry is"), entry);
+  }
   const ASNOutput = await ASNFilesGenerator({
     entry,
-    output: lastAnsOutputDir,
+    output: latestAnsOutputDir,
     typescript,
+    verbose,
   });
+  if (verbose) {
+    console.log();
+    console.log(
+      chalk.greenBright("[ReactIconsGenerator]ASN output"),
+      ASNOutput.ASNNodes
+    );
+  }
   const reactIconOutput = await reactIconsOutputTransformer({
     ASNNodes: ASNOutput.ASNNodes,
     ASNFilepath: ASNFilepath || relative(reactIconOutputDir, ASNOutput.output),
     typescript,
   });
   const { icons, entryFile } = reactIconOutput;
+  if (verbose) {
+    console.log(
+      chalk.greenBright("[ReactIconsGenerator]react icons output"),
+      icons
+    );
+  }
 
   // 这部分逻辑是重复的
   ensure(reactIconOutputDir);
@@ -120,6 +145,12 @@ export async function reactIconsGeneratorFromSVGDir({
   for (let i = 0; i < icons.length; i += 1) {
     const { filename, identifier, content } = icons[i];
     const reactIconFilepath = resolve(reactIconOutputDir, filename);
+    if (verbose) {
+      console.log(
+        chalk.gray("[ReactIconsGenerator]write react icon"),
+        reactIconFilepath
+      );
+    }
     writeFileSync(reactIconFilepath, content);
     result.push({
       id: reactIconFilepath,
@@ -128,14 +159,26 @@ export async function reactIconsGeneratorFromSVGDir({
   }
   if (ASNOutputDir && iconsOutputDir) {
     const ASNEntryFilepath = resolve(
-      lastAnsOutputDir,
+      latestAnsOutputDir,
       ASNOutput.entryFile.filename
     );
+    if (verbose) {
+      console.log(
+        chalk.gray("[ReactIconsGenerator]write ASN entry"),
+        ASNEntryFilepath
+      );
+    }
     writeFileSync(ASNEntryFilepath, ASNOutput.entryFile.content);
     const reactIconEntryFilepath = resolve(
-      lastReactIconOutputDir,
+      latestReactIconOutputDir,
       entryFile.filename
     );
+    if (verbose) {
+      console.log(
+        chalk.gray("[ReactIconsGenerator]write React icon entry"),
+        reactIconEntryFilepath
+      );
+    }
     writeFileSync(reactIconEntryFilepath, entryFile.content);
   } else {
     const entryFilepath = resolve(output!, entryFile.filename);
@@ -144,13 +187,14 @@ export async function reactIconsGeneratorFromSVGDir({
 
   if (typescript) {
     if (ASNOutputDir && iconsOutputDir) {
-      generateTypeFiles({ output: lastAnsOutputDir });
-      generateTypeFiles({ output: lastReactIconOutputDir });
+      generateTypeFiles({ output: latestAnsOutputDir });
+      generateTypeFiles({ output: latestReactIconOutputDir });
     } else {
       generateTypeFiles({ output: output! });
     }
   }
-  await copyIconComponents({ output: lastReactIconOutputDir, typescript });
+
+  await copyIconComponents({ output: latestReactIconOutputDir, typescript });
   return result;
 }
 
