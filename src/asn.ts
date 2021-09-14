@@ -21,7 +21,7 @@ export async function SVGFilesReader({
     return Promise.reject(new Error(`${entry} is not existing.`));
   }
   const pattern = resolve(entry!, "**", "*.svg");
-  const SVGFilepaths = await globby(pattern);
+  const SVGFilepaths = globby.sync(pattern);
   return SVGFilepaths.map((SVGFile) => {
     const SVGContent = readFileSync(SVGFile, "utf-8");
     return {
