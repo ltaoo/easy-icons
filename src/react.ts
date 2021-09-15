@@ -128,7 +128,9 @@ export async function reactIconsGeneratorFromSVGDir({
   }
   const reactIconOutput = await reactIconsOutputTransformer({
     ASNNodes: ASNOutput.ASNNodes,
-    ASNFilepath: ASNFilepath || relative(reactIconOutputDir, ASNOutput.output),
+    ASNFilepath:
+      ASNFilepath ||
+      relative(reactIconOutputDir, ASNOutput.output).replace(/\\/g, "/"),
     typescript,
   });
   const { icons, entryFile } = reactIconOutput;
@@ -235,7 +237,10 @@ function tmpEntryRender({
   output: string;
   iconsDirName: string;
 }) {
-  const path = relative(output, resolve(output, iconsDirName, identifier));
+  const path = relative(
+    output,
+    resolve(output, iconsDirName, identifier)
+  ).replace(/\\/g, "/");
   return entryRenderer<string>([identifier], {
     parse(identifier) {
       return {
@@ -268,7 +273,7 @@ export async function singleReactIconGenerator({
   const reactIconOutputDir = resolve(output, iconsDirName || "icons");
   ensure(reactIconOutputDir);
   const reactIcon = await reactIconTransformer({
-    ASNFilepath: relative(reactIconOutputDir, ASNOutputDir),
+    ASNFilepath: relative(reactIconOutputDir, ASNOutputDir).replace(/\\/g, "/"),
     identifier: ASNNode.identifier,
     typescript,
   });
